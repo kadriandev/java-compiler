@@ -18,4 +18,6 @@ public interface AbsynVisitor {
 
   public void visit( ReturnExp exp, int level );
 
+  public void visit( FunctionExp exp, int level );
+
 }

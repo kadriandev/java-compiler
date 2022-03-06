@@ -90,4 +90,11 @@ public class ShowTreeVisitor implements AbsynVisitor {
     exp.exp.accept( this, ++level );
   }
 
+  public void visit( FunctionExp exp, int level ) {
+    indent( level );
+    System.out.println( "Function:" );
+    // exp.name.accept( this, ++level );
+    
+  }
+
 }
