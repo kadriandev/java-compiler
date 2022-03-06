@@ -10,7 +10,7 @@ generate an executable program called "Main".
 
   To test source code like "fac.tiny", type 
 
-    "java -cp /usr/share/java/cup.jar:. Main fac.cm" 
+    "java -cp /usr/share/java/cup.jar:. Main test.cm" 
 
 and the syntax tree will be displayed on the screen.
 

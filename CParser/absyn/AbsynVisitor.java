@@ -20,4 +20,5 @@ public interface AbsynVisitor {
 
   public void visit( FunctionExp exp, int level );
 
+  public void visit( FunctionCall exp, int level );
 }

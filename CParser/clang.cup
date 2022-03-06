@@ -77,11 +77,11 @@ parser code {:
 terminal IF, ELSE, WHILE, INT, RETURN, VOID;
 terminal ASSIGN, EQ, NEQ, LT, LTE, GT, GTE, PLUS, MINUS, TIMES, OVER, SEMI;
 terminal COMMA, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE;
-terminal String ID, NUM;
+terminal String ID, NUM, INPUT, OUTPUT;
 terminal ERROR;
    
 non terminal ExpList program, stmt_seq, if_body, else_body, while_body;
-non terminal Exp stmt, if_stmt, assign_stmt, while_stmt, return_stmt, func_stmt;
+non terminal Exp stmt, if_stmt, assign_stmt, while_stmt, return_stmt, func_stmt, func_call;
 non terminal Exp exp, simple_exp, term, factor, var_decl;
 
 
@@ -122,7 +122,6 @@ stmt_seq    ::= stmt_seq:s1 SEMI stmt:s2
                  {: parser.report_error("invalid", null); 
                     RESULT = new ExpList(s, null); 
                  :}
-               
             ;
 
 var_decl    ::= INT:i ID:id
@@ -178,6 +177,22 @@ func_stmt   ::= VOID:v ID:id LPAREN VOID RPAREN LBRACE stmt_seq:s RBRACE
                {: RESULT = new FunctionExp(vleft, vright, "void", id, new String[1], s); :}
             ;
 
+func_call   ::= OUTPUT:o LBRACE ID:i  RBRACE
+               {: 
+                  String[] params = new String[1];
+                  params[0] = i;
+                  RESULT = new FunctionCall(oleft, oright, o, params); 
+               :}
+            | OUTPUT:o LBRACE NUM:n  RBRACE
+               {: 
+                  String[] params = new String[1];
+                  params[0] = n;
+                  RESULT = new FunctionCall(oleft, oright, o, params); 
+               :}
+            | INPUT:i LBRACE RBRACE
+               {: RESULT = new FunctionCall(ileft, iright, i, null); :}
+            ;
+
 exp         ::= simple_exp:s1 LT simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.LT, s2); :}
                | simple_exp:s1 LTE simple_exp:s2
@@ -192,6 +207,8 @@ exp         ::= simple_exp:s1 LT simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.NEQ, s2); :}
                | simple_exp:s
                  {: RESULT = s; :}
+               | func_call:f
+                 {: RESULT = f; :}
             ;
 
 simple_exp  ::= simple_exp:s PLUS term:t

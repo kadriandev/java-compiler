@@ -9,7 +9,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
   }
 
   public void visit( ExpList expList, int level ) {
-    while( expList != null ) {
+    while( expList != null && expList.head != null) {
       expList.head.accept( this, level );
       expList = expList.tail;
     } 
@@ -76,7 +76,6 @@ public class ShowTreeVisitor implements AbsynVisitor {
     System.out.println( "WhileExp:" );
     level++;
     exp.exps.accept( this, level );
-    exp.test.accept( this, level ); 
   }
 
   public void visit( VarExp exp, int level ) {
@@ -92,7 +91,14 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   public void visit( FunctionExp exp, int level ) {
     indent( level );
-    System.out.println( "Function:" );
+    System.out.println( "Function Declaration: " + exp.name );
+    // exp.name.accept( this, ++level );
+    
+  }
+
+  public void visit( FunctionCall exp, int level ) {
+    indent( level );
+    System.out.println( "Function Call: " + exp.funcName );
     // exp.name.accept( this, ++level );
     
   }

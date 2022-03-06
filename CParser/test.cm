@@ -11,3 +11,5 @@ while (x > 1) {
     fac = fac * x;
     x = x - 1;
 }
+
+output(fac);

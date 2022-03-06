@@ -114,6 +114,8 @@ comment = \/\*([^*]|\*[^/])*\*\/
 "]"                { return symbol(sym.RBRACKET); }
 "{"                { return symbol(sym.LBRACE); }
 "}"                { return symbol(sym.RBRACE); }
+"input"            { return symbol(sym.INPUT); }
+"output"           { return symbol(sym.OUTPUT); }
 {num}              { return symbol(sym.NUM, yytext()); }
 {id}               { return symbol(sym.ID, yytext()); }
 {WhiteSpace}+      { /* skip whitespace */ }   
