@@ -4,10 +4,10 @@ public class FunctionExp extends Exp {
 
     public String name;
     public String returnType;
-    public String[] args;
+    public ExpList args;
     public ExpList exps;
     
-    public FunctionExp( int row, int col, String returnType, String name, String[] args, ExpList exps) {
+    public FunctionExp( int row, int col, String returnType, String name, ExpList args, ExpList exps) {
         this.row = row;
         this.col = col;
         this.returnType = returnType;

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 parser code {:
 
    ArrayList<String> vars = new ArrayList<String>();
+   ArrayList<String> funcs = new ArrayList<String>();
     
     /* Change the method report_error so it will display the line and
        column of where the error occurred in the input as well as the
@@ -80,10 +81,9 @@ terminal COMMA, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE;
 terminal String ID, NUM, INPUT, OUTPUT;
 terminal ERROR;
    
-non terminal ExpList program, stmt_seq, if_body, else_body, while_body;
-non terminal Exp stmt, if_stmt, assign_stmt, while_stmt, return_stmt, func_stmt, func_call;
+non terminal ExpList program, stmt_seq, if_body, else_body, while_body, param_decl, params;
+non terminal Exp stmt, if_stmt, assign_stmt, while_stmt, return_stmt, func_decl, func_call;
 non terminal Exp exp, simple_exp, term, factor, var_decl;
-
 
 
 /* ----------------------------Grammar Section-------------------- */
@@ -94,22 +94,23 @@ program	   ::= stmt_seq:s
                {: RESULT = s; :}
             ;
 
-stmt        ::= if_stmt:i
-                  {: RESULT = i; :}
-               | assign_stmt:a
+stmt        ::= return_stmt:w SEMI
+                  {: RESULT = w; :}
+               | var_decl:v SEMI
+                  {: RESULT = v; :}
+               | assign_stmt:a SEMI
                   {: RESULT = a; :}
+               | func_call:f SEMI
+                  {: RESULT = f; :}
+               | if_stmt:i
+                  {: RESULT = i; :}
                | while_stmt:r
                   {: RESULT = r; :}
-               | return_stmt:w
-                  {: RESULT = w; :}
-               | func_stmt:f
+               | func_decl:f
                   {: RESULT = f; :}
-               | var_decl:v 
-                  {: RESULT = v; :}
-               |
             ;
 
-stmt_seq    ::= stmt_seq:s1 SEMI stmt:s2 
+stmt_seq    ::= stmt_seq:s1 stmt:s2 
                   {: ExpList t = s1;
                      while( t.tail != null )
                         t = t.tail;
@@ -129,6 +130,55 @@ var_decl    ::= INT:i ID:id
                   vars.add(id);
                   RESULT = new VarExp(ileft, iright, "int", id); 
                :}
+            ;
+
+param_decl  ::= INT:i ID:id
+                  {: 
+                     VarExp[] args = new VarExp[1];
+                     RESULT = new ExpList(new VarExp(ileft, iright, "int", id), null);
+                  :}
+               | param_decl:p COMMA INT:i ID:id
+                  {: 
+                     ExpList params = p;
+                     while( params.tail != null )
+                        params = params.tail;
+                     params.tail = new ExpList(new VarExp(pleft, pright, "int", id), null);
+                     RESULT = p;
+                  :}
+            ;
+
+params      ::= simple_exp:e
+                  {:
+                     ExpList params = new ExpList(e, null);
+                     RESULT = params; 
+                  :}
+               | params:p COMMA ID:id
+                  {:
+                     ExpList params = p;
+                     while(params.tail != null)
+                        params = params.tail;
+
+                     params.tail = new ExpList(new VarExp(pleft, pright, "int", id), null);
+                     RESULT = p; 
+                  :}
+               | params:p COMMA simple_exp:e
+                  {:
+                     ExpList params = p;
+                     while(params.tail != null)
+                        params = params.tail;
+
+                     params.tail = new ExpList(e, null);
+                     RESULT = p; 
+                  :}
+               | params:p COMMA func_call:f
+                  {:
+                     ExpList params = p;
+                     while(params.tail != null)
+                        params = params.tail;
+
+                     params.tail = new ExpList(f, null);
+                     RESULT = p; 
+                  :}
             ;
 
 if_stmt     ::= IF:i LPAREN exp:e RPAREN if_body:s
@@ -170,27 +220,42 @@ assign_stmt ::= INT ID:i ASSIGN exp:e
             ;
 
 return_stmt ::= RETURN:r exp:e
-               {: RESULT = new ReturnExp(rleft, rright, e); :}
+                  {: RESULT = new ReturnExp(rleft, rright, e); :}
+               | RETURN:r func_call:f
+                  {: RESULT = new ReturnExp(rleft, rright, f); :}
             ;
 
-func_stmt   ::= VOID:v ID:id LPAREN VOID RPAREN LBRACE stmt_seq:s RBRACE
-               {: RESULT = new FunctionExp(vleft, vright, "void", id, new String[1], s); :}
+func_decl   ::= VOID:v ID:id LPAREN VOID RPAREN LBRACE stmt_seq:s RBRACE
+                  {: 
+                     RESULT = new FunctionExp(vleft, vright, "void", id, null, s); 
+                  :}
+               | INT:i ID:id LPAREN param_decl:p RPAREN LBRACE stmt_seq:s RBRACE
+                  {: 
+                     RESULT = new FunctionExp(ileft, iright, "int", id, p, s); 
+                  :}
             ;
 
-func_call   ::= OUTPUT:o LBRACE ID:i  RBRACE
+func_call   ::= OUTPUT:o LPAREN ID:i RPAREN
                {: 
-                  String[] params = new String[1];
-                  params[0] = i;
-                  RESULT = new FunctionCall(oleft, oright, o, params); 
+                  ExpList params = new ExpList(new VarExp(ileft, iright, "int", i), null);
+                  RESULT = new FunctionCall(oleft, oright, "output", params); 
                :}
-            | OUTPUT:o LBRACE NUM:n  RBRACE
+            | OUTPUT:o LPAREN NUM:n RPAREN
                {: 
-                  String[] params = new String[1];
-                  params[0] = n;
-                  RESULT = new FunctionCall(oleft, oright, o, params); 
+                  ExpList params = new ExpList(new IntExp(nleft, nright, n), null);
+                  RESULT = new FunctionCall(oleft, oright, "output", params); 
                :}
-            | INPUT:i LBRACE RBRACE
-               {: RESULT = new FunctionCall(ileft, iright, i, null); :}
+            | OUTPUT:o LPAREN func_call:f RPAREN
+               {: 
+                  ExpList params = new ExpList(f, null);
+                  RESULT = new FunctionCall(oleft, oright, "output", params); 
+               :}
+            | INPUT:i LPAREN RPAREN
+               {: RESULT = new FunctionCall(ileft, iright, "input", null); :}
+            | ID:i LPAREN params:p RPAREN
+               {: 
+                  RESULT = new FunctionCall(ileft, iright, i, p);
+               :}
             ;
 
 exp         ::= simple_exp:s1 LT simple_exp:s2
@@ -205,10 +270,11 @@ exp         ::= simple_exp:s1 LT simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.EQ, s2); :}
                | simple_exp:s1 NEQ simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.NEQ, s2); :}
-               | simple_exp:s
-                 {: RESULT = s; :}
                | func_call:f
                  {: RESULT = f; :}
+               | simple_exp:s
+                 {: RESULT = s; :}
+               
             ;
 
 simple_exp  ::= simple_exp:s PLUS term:t

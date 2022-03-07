@@ -29,8 +29,12 @@ public class ShowTreeVisitor implements AbsynVisitor {
     level++;
     exp.test.accept( this, level );
     exp.thenpart.accept( this, level );
-    if (exp.elsepart != null )
-       exp.elsepart.accept( this, level );
+    
+    if (exp.elsepart != null ) {
+      indent(--level);
+      System.out.println("ElseExp:"); 
+      exp.elsepart.accept( this, ++level );
+    }
   }
 
   public void visit( IntExp exp, int level ) {
@@ -91,16 +95,36 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   public void visit( FunctionExp exp, int level ) {
     indent( level );
-    System.out.println( "Function Declaration: " + exp.name );
-    // exp.name.accept( this, ++level );
+    String args = "";
+    // if(exp.args != null) {
+    //   for(int i = 0; i < exp.args.length; i++) {
+    //     args += exp.args[i];
+    //     if(i + 1 < exp.args.length) {
+    //       args += ", ";
+    //     }
+    //   }
+    // }
+    ExpList params = exp.args;
+    if(params!= null) {
+      while( params.tail != null ) {
+        args += ((VarExp) params.head).type + " " + ((VarExp) params.head).name;
+        params = params.tail;
+        if(params.tail != null) {
+          args += ", ";
+        }
+      }
+    }
+
+    System.out.println( "Function Declaration: " + exp.returnType + " " + exp.name + "(" + args + ")");
+    exp.exps.accept( this, ++level );
     
   }
 
   public void visit( FunctionCall exp, int level ) {
     indent( level );
-    System.out.println( "Function Call: " + exp.funcName );
-    // exp.name.accept( this, ++level );
-    
+    System.out.println( "Function Call: " + exp.funcName);
+    if(exp.params != null)
+      exp.params.accept(this, ++level);
   }
 
 }
