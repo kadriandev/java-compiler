@@ -3,7 +3,7 @@ package absyn;
 public class VarExp extends Exp {
   public String type, name;
 
-  public VarExp( int row, int col, String type, String name ) {
+  public VarExp( int row, int col, String type, String name) {
     this.row = row;
     this.col = col;
     this.type = type;
