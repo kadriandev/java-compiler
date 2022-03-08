@@ -28,6 +28,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     System.out.println( "IfExp:" );
     level++;
     exp.test.accept( this, level );
+    System.out.println();
     exp.thenpart.accept( this, level );
     
     if (exp.elsepart != null ) {
@@ -79,12 +80,20 @@ public class ShowTreeVisitor implements AbsynVisitor {
     indent( level );
     System.out.println( "WhileExp:" );
     level++;
+    exp.test.accept( this, level );
+    System.out.println();
     exp.exps.accept( this, level );
   }
 
   public void visit( VarExp exp, int level ) {
     indent( level );
     System.out.println( "VarExp: " + exp.name );
+  }
+
+  public void visit( ArrExp exp, int level ) {
+    indent( level );
+    System.out.println( "ArrExp: " + exp.name + "[]");
+    exp.index.accept(this, ++level);
   }
 
   public void visit( ReturnExp exp, int level ) {
@@ -96,24 +105,16 @@ public class ShowTreeVisitor implements AbsynVisitor {
   public void visit( FunctionExp exp, int level ) {
     indent( level );
     String args = "";
-    // if(exp.args != null) {
-    //   for(int i = 0; i < exp.args.length; i++) {
-    //     args += exp.args[i];
-    //     if(i + 1 < exp.args.length) {
-    //       args += ", ";
-    //     }
-    //   }
-    // }
-    ExpList params = exp.args;
-    if(params!= null) {
-      while( params.tail != null ) {
-        args += ((VarExp) params.head).type + " " + ((VarExp) params.head).name;
-        params = params.tail;
-        if(params.tail != null) {
-          args += ", ";
-        }
+    ExpList curr = exp.args;
+    
+    while( curr != null ) {
+      args += ((VarExp) curr.head).type + " " + ((VarExp) curr.head).name;
+      curr = curr.tail;
+      if(curr != null) {
+        args += ", ";
       }
     }
+    
 
     System.out.println( "Function Declaration: " + exp.returnType + " " + exp.name + "(" + args + ")");
     exp.exps.accept( this, ++level );
@@ -126,5 +127,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     if(exp.params != null)
       exp.params.accept(this, ++level);
   }
+
+
 
 }

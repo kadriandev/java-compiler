@@ -85,6 +85,7 @@ non terminal ExpList program, stmt_seq, if_body, else_body, while_body, param_de
 non terminal Exp stmt, if_stmt, assign_stmt, while_stmt, return_stmt, func_decl, func_call;
 non terminal Exp exp, simple_exp, term, factor, var_decl;
 
+precedence left LBRACE;
 
 /* ----------------------------Grammar Section-------------------- */
    
@@ -128,22 +129,26 @@ stmt_seq    ::= stmt_seq:s1 stmt:s2
 var_decl    ::= INT:i ID:id
                {: 
                   vars.add(id);
-                  RESULT = new VarExp(ileft, iright, "int", id); 
+                  RESULT = new VarExp(ileft, iright, "int", id);
+               :}
+            | INT:i ID:id LBRACKET factor:f RBRACKET
+               {: 
+                  vars.add(id);
+                  RESULT = new ArrExp(ileft, iright, "int[]", id, f);
                :}
             ;
 
 param_decl  ::= INT:i ID:id
+                  {: RESULT = new ExpList(new VarExp(ileft, iright, "int", id), null); :}
+               | INT:i ID:id LBRACKET RBRACKET
+                  {: RESULT = new ExpList(new VarExp(ileft, iright, "int[]", id), null); :}
+               | param_decl:p1 COMMA param_decl:p2
                   {: 
-                     VarExp[] args = new VarExp[1];
-                     RESULT = new ExpList(new VarExp(ileft, iright, "int", id), null);
-                  :}
-               | param_decl:p COMMA INT:i ID:id
-                  {: 
-                     ExpList params = p;
+                     ExpList params = p1;
                      while( params.tail != null )
                         params = params.tail;
-                     params.tail = new ExpList(new VarExp(pleft, pright, "int", id), null);
-                     RESULT = p;
+                     params.tail = p2;
+                     RESULT = p1;
                   :}
             ;
 
@@ -152,15 +157,6 @@ params      ::= simple_exp:e
                      ExpList params = new ExpList(e, null);
                      RESULT = params; 
                   :}
-               | params:p COMMA ID:id
-                  {:
-                     ExpList params = p;
-                     while(params.tail != null)
-                        params = params.tail;
-
-                     params.tail = new ExpList(new VarExp(pleft, pright, "int", id), null);
-                     RESULT = p; 
-                  :}
                | params:p COMMA simple_exp:e
                   {:
                      ExpList params = p;
@@ -168,15 +164,6 @@ params      ::= simple_exp:e
                         params = params.tail;
 
                      params.tail = new ExpList(e, null);
-                     RESULT = p; 
-                  :}
-               | params:p COMMA func_call:f
-                  {:
-                     ExpList params = p;
-                     while(params.tail != null)
-                        params = params.tail;
-
-                     params.tail = new ExpList(f, null);
                      RESULT = p; 
                   :}
             ;
@@ -209,25 +196,29 @@ while_body  ::= LBRACE stmt_seq:s RBRACE
                   {: RESULT = new ExpList(s, null); :}
             ;
 
-assign_stmt ::= INT ID:i ASSIGN exp:e
+assign_stmt ::= INT ID:i ASSIGN simple_exp:e
                  {: RESULT = new AssignExp(ileft, iright, new VarExp(ileft, iright, "int", i), e); :}
-               | ID:i ASSIGN exp:e
+               | ID:i ASSIGN simple_exp:e
                   {: 
                      if(vars.contains(i)) {
                         RESULT = new AssignExp(ileft, iright, new VarExp(ileft, iright, "int", i), e);
                      } 
                   :}
+               | ID:i LBRACKET factor:f RBRACKET ASSIGN simple_exp:e
+                  {: RESULT = new AssignExp(ileft, iright, new ArrExp(ileft, iright, "int[]", i, f), e); :}
             ;
 
 return_stmt ::= RETURN:r exp:e
                   {: RESULT = new ReturnExp(rleft, rright, e); :}
-               | RETURN:r func_call:f
-                  {: RESULT = new ReturnExp(rleft, rright, f); :}
-            ;
+               ;
 
 func_decl   ::= VOID:v ID:id LPAREN VOID RPAREN LBRACE stmt_seq:s RBRACE
                   {: 
                      RESULT = new FunctionExp(vleft, vright, "void", id, null, s); 
+                  :}
+               | VOID:v ID:id LPAREN param_decl:p RPAREN LBRACE stmt_seq:s RBRACE
+                  {: 
+                     RESULT = new FunctionExp(vleft, vright, "void", id, p, s); 
                   :}
                | INT:i ID:id LPAREN param_decl:p RPAREN LBRACE stmt_seq:s RBRACE
                   {: 
@@ -235,21 +226,8 @@ func_decl   ::= VOID:v ID:id LPAREN VOID RPAREN LBRACE stmt_seq:s RBRACE
                   :}
             ;
 
-func_call   ::= OUTPUT:o LPAREN ID:i RPAREN
-               {: 
-                  ExpList params = new ExpList(new VarExp(ileft, iright, "int", i), null);
-                  RESULT = new FunctionCall(oleft, oright, "output", params); 
-               :}
-            | OUTPUT:o LPAREN NUM:n RPAREN
-               {: 
-                  ExpList params = new ExpList(new IntExp(nleft, nright, n), null);
-                  RESULT = new FunctionCall(oleft, oright, "output", params); 
-               :}
-            | OUTPUT:o LPAREN func_call:f RPAREN
-               {: 
-                  ExpList params = new ExpList(f, null);
-                  RESULT = new FunctionCall(oleft, oright, "output", params); 
-               :}
+func_call   ::= OUTPUT:o LPAREN simple_exp:e RPAREN
+               {: RESULT = new FunctionCall(oleft, oright, "output", new ExpList(e, null)); :}
             | INPUT:i LPAREN RPAREN
                {: RESULT = new FunctionCall(ileft, iright, "input", null); :}
             | ID:i LPAREN params:p RPAREN
@@ -270,8 +248,6 @@ exp         ::= simple_exp:s1 LT simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.EQ, s2); :}
                | simple_exp:s1 NEQ simple_exp:s2
                  {: RESULT = new OpExp(s1left, s1right, s1, OpExp.NEQ, s2); :}
-               | func_call:f
-                 {: RESULT = f; :}
                | simple_exp:s
                  {: RESULT = s; :}
                
@@ -281,6 +257,8 @@ simple_exp  ::= simple_exp:s PLUS term:t
                  {: RESULT = new OpExp(sleft, sright, s, OpExp.PLUS, t); :}
                | simple_exp:s MINUS term:t
                  {: RESULT = new OpExp(sleft, sright, s, OpExp.MINUS, t); :}
+               | func_call:f
+                 {: RESULT = f; :}
                | term:t
                  {: RESULT = t; :}
             ;
@@ -299,4 +277,6 @@ factor      ::= LPAREN exp:e RPAREN
                  {: RESULT = new IntExp(nleft, nright, n); :}
                | ID:i
                  {: RESULT = new VarExp(ileft, iright, "int", i); :}
+               | ID:i LBRACKET factor:f RBRACKET
+                  {: RESULT = new ArrExp(ileft, iright, "int[]", i, f); :}
             ;
