@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class FunctionCall extends Exp {
     

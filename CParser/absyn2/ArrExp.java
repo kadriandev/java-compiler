@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class ArrExp extends VarExp {
     public Exp index;

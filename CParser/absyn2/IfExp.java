@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class IfExp extends Exp {
   public Exp test;

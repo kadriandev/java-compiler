@@ -1,9 +1,6 @@
-import absyn.*;
-import absyn.Declaration.*;
-import absyn.Expressions.*;
-import absyn.Statements.*;
+import absyn2.*;
 
-public class ShowTreeVisitor implements AbsynVisitor {
+public class ShowTreeVisitor2 implements AbsynVisitor {
 
   final static int SPACES = 4;
 
@@ -11,21 +8,14 @@ public class ShowTreeVisitor implements AbsynVisitor {
     for( int i = 0; i < level * SPACES; i++ ) System.out.print( " " );
   }
 
-  public void visit( DeclarationList expList, int level ) {
+  public void visit( ExpList expList, int level ) {
     while( expList != null && expList.head != null) {
       expList.head.accept( this, level );
       expList = expList.tail;
     } 
   }
 
-  public void visit( StatementList expList, int level ) {
-    while( expList != null && expList.head != null) {
-      expList.head.accept( this, level );
-      expList = expList.tail;
-    } 
-  }
-
-  public void visit( AssignExpression exp, int level ) {
+  public void visit( AssignExp exp, int level ) {
     indent( level );
     System.out.println( "AssignExp:" );
     level++;
@@ -33,49 +23,49 @@ public class ShowTreeVisitor implements AbsynVisitor {
     exp.rhs.accept( this, level );
   }
 
-  public void visit( IfStatement exp, int level ) {
+  public void visit( IfExp exp, int level ) {
     indent( level );
     System.out.println( "IfExp:" );
     level++;
     exp.test.accept( this, level );
     System.out.println();
-    exp.ifblock.accept( this, level );
+    exp.thenpart.accept( this, level );
     
-    if (exp.elseblock != null ) {
+    if (exp.elsepart != null ) {
       indent(--level);
       System.out.println("ElseExp:"); 
-      exp.elseblock.accept( this, ++level );
+      exp.elsepart.accept( this, ++level );
     }
   }
 
-  public void visit( IntExpression exp, int level ) {
+  public void visit( IntExp exp, int level ) {
     indent( level );
     System.out.println( "IntExp: " + exp.value ); 
   }
 
-  public void visit( OpExpression exp, int level ) {
+  public void visit( OpExp exp, int level ) {
     indent( level );
     System.out.print( "OpExp:" ); 
     switch( exp.op ) {
-      case OpExpression.PLUS:
+      case OpExp.PLUS:
         System.out.println( " + " );
         break;
-      case OpExpression.MINUS:
+      case OpExp.MINUS:
         System.out.println( " - " );
         break;
-      case OpExpression.TIMES:
+      case OpExp.TIMES:
         System.out.println( " * " );
         break;
-      case OpExpression.OVER:
+      case OpExp.OVER:
         System.out.println( " / " );
         break;
-      case OpExpression.EQ:
+      case OpExp.EQ:
         System.out.println( " = " );
         break;
-      case OpExpression.LT:
+      case OpExp.LT:
         System.out.println( " < " );
         break;
-      case OpExpression.GT:
+      case OpExp.GT:
         System.out.println( " > " );
         break;
       default:
@@ -86,7 +76,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     exp.right.accept( this, level );
   }
 
-  public void visit( WhileStatement exp, int level ) {
+  public void visit( WhileExp exp, int level ) {
     indent( level );
     System.out.println( "WhileExp:" );
     level++;
@@ -95,56 +85,47 @@ public class ShowTreeVisitor implements AbsynVisitor {
     exp.exps.accept( this, level );
   }
 
-  public void visit( VarExpression exp, int level ) {
+  public void visit( VarExp exp, int level ) {
     indent( level );
     System.out.println( "VarExp: " + exp.name );
   }
 
-  public void visit( ReturnStatement exp, int level ) {
+  public void visit( ArrExp exp, int level ) {
+    indent( level );
+    System.out.println( "ArrExp: " + exp.name + "[]");
+    exp.index.accept(this, ++level);
+  }
+
+  public void visit( ReturnExp exp, int level ) {
     indent( level );
     System.out.println( "ReturnExp:" );
     exp.exp.accept( this, ++level );
   }
 
-  public void visit( FuncDeclaration exp, int level ) {
+  public void visit( FunctionExp exp, int level ) {
     indent( level );
     String args = "";
-    DeclarationList curr = exp.params;
+    ExpList curr = exp.args;
     
     while( curr != null ) {
-      args += ((VarDeclaration) curr.head).type + " " + ((VarDeclaration) curr.head).name;
+      args += ((VarExp) curr.head).type + " " + ((VarExp) curr.head).name;
       curr = curr.tail;
       if(curr != null) {
         args += ", ";
       }
     }
     
-    System.out.println( "Function Declaration: " + exp.type + " " + exp.name + "(" + args + ")");
-    exp.funcBody.accept( this, ++level );
+
+    System.out.println( "Function Declaration: " + exp.returnType + " " + exp.name + "(" + args + ")");
+    exp.exps.accept( this, ++level );
     
   }
 
-  public void visit( FuncExpression exp, int level ) {
+  public void visit( FunctionCall exp, int level ) {
     indent( level );
     System.out.println( "Function Call: " + exp.funcName);
-    if(exp.args != null)
-      exp.args.accept(this, ++level);
-  }
-
-  public void visit(VarDeclaration node, int level) {
-    indent(level);
-    String s = "VarDecl: " + node.type + " " + node.name;
-    if(node.size > 0) {
-      s += "[" + node.size + "]";
-    }
-    System.out.println(s);
-  }
-
-  @Override
-  public void visit(CompoundStatement node, int level) {
-    indent(level);
-    node.local_decl.accept(this, level);
-    node.statements.accept(this, level);
+    if(exp.params != null)
+      exp.params.accept(this, ++level);
   }
 
 

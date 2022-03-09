@@ -9,7 +9,7 @@
    
 /* Import the class java_cup.runtime.*  */
 //import java_cup.runtime.*;
-import absyn.*;
+import absyn2.*;
 import java.util.ArrayList;
    
 /* Parser code to change the way the parser reports errors (include

@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class IntExp extends Exp {
   public String value;

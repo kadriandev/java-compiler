@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class WhileExp extends Exp {
   public ExpList exps;

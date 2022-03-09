@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class VarExp extends Exp {
   public String type, name;

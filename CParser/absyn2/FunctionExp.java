@@ -1,4 +1,4 @@
-package absyn;
+package absyn2;
 
 public class FunctionExp extends Exp {
 
