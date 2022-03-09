@@ -1,0 +1,29 @@
+/*
+*   Testing comments
+*   Testing declaring functions
+*   Testing using functions
+*   Testing while loops
+*   Testing variable declarations
+*   Testing function parameters
+*   Testing scope correctness
+*/
+
+/*void main(void){}*/
+
+/*program for printing out a number a number of times*/
+void printNum(int num, int numtimes){
+    int i;
+    i = 0;
+    while(i < 20){
+        output(num);
+        i = i + 1;
+    }
+    
+}
+void main(void) {
+    int printnum;
+    int numtimes;
+    printnum = 5;
+    numtimes = 5;
+    printNum(printnum, numtimes);
+}

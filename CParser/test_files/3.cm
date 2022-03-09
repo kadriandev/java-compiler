@@ -1,0 +1,31 @@
+/*
+*   Testing function defined after main
+*   Testing variable already exists (different scopes)
+*/
+
+int i;
+
+/*void main(void){}*/
+
+void printNum(int i){
+
+}
+
+void main(void) {
+    int printnum;
+    int numtimes;
+    printnum = 5;
+    numtimes = 5;
+    printNum(printnum);
+}
+
+/*program for printing out a number a number of times*/
+void printNum(int num, int numtimes){
+    int i;
+    i = 0;
+    while(i < 20){
+        output(num);
+        i = i + 1;
+    }
+    
+}

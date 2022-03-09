@@ -1,0 +1,36 @@
+/*
+*   Testing function not defined
+*   Testing variable already exists (Variables same scope)
+*   Testing function already exists
+*/
+int x;
+int x;
+
+/*void main(void){}*/
+
+void printNum(void){ /*---*/
+    
+}
+
+/*program for printing out a number a number of times*/
+void printNum(int num, int numtimes){
+    int i;
+    i = 0;
+    while(i < 20){
+        output(num);
+        i = i + 1;
+    }
+    
+}
+/*
+*main function
+*/
+void main(void) {
+    int printnum;
+    int numtimes;
+    printNum = 1;
+    numtimes = 5;
+    int numtimes; /*---*/
+    printNum(printnum, numtimes);
+    closeConnection(int num, int numtimes); /*---*/
+}
