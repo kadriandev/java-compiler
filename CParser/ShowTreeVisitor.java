@@ -97,7 +97,14 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   public void visit( VarExpression exp, int level ) {
     indent( level );
-    System.out.println( "VarExp: " + exp.name );
+    String varStr = exp.name;
+    if(exp.index != null) {
+      varStr += "[]";
+    }
+    System.out.println( "VarExp: " + varStr );
+    if(exp.index != null) {
+      exp.index.accept(this, ++level);
+    }
   }
 
   public void visit( ReturnStatement exp, int level ) {
@@ -125,7 +132,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
   }
 
   public void visit( FuncExpression exp, int level ) {
-    indent( level );
+    indent(level);
     System.out.println( "Function Call: " + exp.funcName);
     if(exp.args != null)
       exp.args.accept(this, ++level);
@@ -142,9 +149,14 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   @Override
   public void visit(CompoundStatement node, int level) {
-    indent(level);
-    node.local_decl.accept(this, level);
-    node.statements.accept(this, level);
+    
+    if(node.local_decl != null) {
+      node.local_decl.accept(this, level);
+    }
+
+    if(node.statements != null) {
+      node.statements.accept(this, level);
+    }
   }
 
 

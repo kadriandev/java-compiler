@@ -18,56 +18,64 @@ import java.util.ArrayList;
    line and column number of the error). */
 parser code {:
     
-    /* Change the method report_error so it will display the line and
-       column of where the error occurred in the input as well as the
-       reason for the error which is passed into the method in the
-       String 'message'. */
-    public void report_error(String message, Object info) {
-   
-        /* Create a StringBuffer called 'm' with the string 'Error' in it. */
-        StringBuffer m = new StringBuffer("Error");
-   
-        /* Check if the information passed to the method is the same
-           type as the type java_cup.runtime.Symbol. */
-        if (info instanceof java_cup.runtime.Symbol) {
-            /* Declare a java_cup.runtime.Symbol object 's' with the
-               information in the object info that is being typecasted
-               as a java_cup.runtime.Symbol object. */
-            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
-   
-            /* Check if the line number in the input is greater or
-               equal to zero. */
-            if (s.left >= 0) {                
-                /* Add to the end of the StringBuffer error message
-                   the line number of the error in the input. */
-                m.append(" in line "+(s.left+1));   
-                /* Check if the column number in the input is greater
-                   or equal to zero. */
-                if (s.right >= 0)                    
-                    /* Add to the end of the StringBuffer error message
-                       the column number of the error in the input. */
-                    m.append(", column "+(s.right+1));
-            }
-        }
-   
-        /* Add to the end of the StringBuffer error message created in
-           this method the message that was passed into this method. */
-        m.append(" : "+ message);
-   
-        /* Print the contents of the StringBuffer 'm', which contains
-           an error message, out on a line. */
-        System.err.println(m);
-    }
-   
-    /* Change the method report_fatal_error so when it reports a fatal
-       error it will display the line and column number of where the
-       fatal error occurred in the input as well as the reason for the
-       fatal error which is passed into the method in the object
-       'message' and then exit.*/
-    public void report_fatal_error(String message, Object info) {
-        report_error(message, info);
-        System.exit(1);
-    }
+   ArrayList<String> global_vars = new ArrayList<String>();
+   ArrayList<String> funcs = new ArrayList<String>() {
+      {
+         add("input()");
+         add("output(int)");
+      }
+   };
+
+   /* Change the method report_error so it will display the line and
+      column of where the error occurred in the input as well as the
+      reason for the error which is passed into the method in the
+      String 'message'. */
+   public void report_error(String message, Object info) {
+
+      /* Create a StringBuffer called 'm' with the string 'Error' in it. */
+      StringBuffer m = new StringBuffer("Error");
+
+      /* Check if the information passed to the method is the same
+         type as the type java_cup.runtime.Symbol. */
+      if (info instanceof java_cup.runtime.Symbol) {
+         /* Declare a java_cup.runtime.Symbol object 's' with the
+            information in the object info that is being typecasted
+            as a java_cup.runtime.Symbol object. */
+         java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+
+         /* Check if the line number in the input is greater or
+            equal to zero. */
+         if (s.left >= 0) {                
+               /* Add to the end of the StringBuffer error message
+                  the line number of the error in the input. */
+               m.append(" in line "+(s.left+1));   
+               /* Check if the column number in the input is greater
+                  or equal to zero. */
+               if (s.right >= 0)                    
+                  /* Add to the end of the StringBuffer error message
+                     the column number of the error in the input. */
+                  m.append(", column "+(s.right+1));
+         }
+      }
+
+      /* Add to the end of the StringBuffer error message created in
+         this method the message that was passed into this method. */
+      m.append(" : "+ message);
+
+      /* Print the contents of the StringBuffer 'm', which contains
+         an error message, out on a line. */
+      System.err.println(m);
+   }
+
+   /* Change the method report_fatal_error so when it reports a fatal
+      error it will display the line and column number of where the
+      fatal error occurred in the input as well as the reason for the
+      fatal error which is passed into the method in the object
+      'message' and then exit.*/
+   public void report_fatal_error(String message, Object info) {
+      report_error(message, info);
+      System.exit(1);
+   }
 
 :};
    
@@ -89,7 +97,7 @@ non terminal ExpressionStatement expr, var, simple_exp, additive_expr, call, ter
 non terminal String type_spec, def_funcs;
 non terminal Integer relop, addop, mulop;
 
-precedence left ELSE;
+precedence left IF, ELSE, WHILE, RETURN, SEMI, LPAREN, LBRACE, NUM, INPUT, OUTPUT, ID, INT, VOID;
 
 /* ----------------------------Grammar Section-------------------- */
    
@@ -101,10 +109,12 @@ program        ::= dec_list:d
 
 dec_list       ::= dec_list:dl decl:de 
                   {: 
-                     DeclarationList d = dl;
-                     while( d.tail != null )
-                        d = d.tail;
-                     d.tail = new DeclarationList(dlleft, dlright, de, null);
+                     if(de != null) {
+                        DeclarationList d = dl;
+                        while( d.tail != null )
+                           d = d.tail;
+                        d.tail = new DeclarationList(dlleft, dlright, de, null);
+                     }
                      RESULT = dl;
                   :}
                | decl:d
@@ -112,9 +122,45 @@ dec_list       ::= dec_list:dl decl:de
                ;
             
 decl           ::= var_decl:v 
-                  {: RESULT = v; :}
+                  {:
+                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
+                     if(((VarDeclaration)v).size > 0) {
+                        varStr += "[]";
+                     }
+                     if(!global_vars.contains(varStr)) {
+                        global_vars.add(varStr);
+                        RESULT = v;
+                     }else {
+                        parser.report_error("Variable already exists (line " 
+                           + (vleft + 1) + ", col " + (vright + 1) + ")" , null);
+                        RESULT = null;
+                     }
+                  :}
                | func_decl:f
-                  {: RESULT = f; :}
+                  {: 
+                     String args = "";
+                     DeclarationList curr = ((FuncDeclaration)f).params;
+                     while( curr != null ) {
+                        args += ((VarDeclaration) curr.head).type;
+                        curr = curr.tail;
+                        if(curr != null) {
+                           args += ", ";
+                        }
+                     }
+                     String funcStr = ((FuncDeclaration)f).name + "(" + args + ")";
+                     if(funcs.contains("main()")){ 
+                        parser.report_error("Function declared after main function (line " 
+                           + (fleft + 1) + ", col " + (fright + 1) + ")" , null);
+                        RESULT = null;
+                     }else if(!funcs.contains(funcStr)) {
+                        funcs.add(funcStr);
+                        RESULT = f;
+                     } else {
+                        parser.report_error("Function already exists (line " 
+                           + (fleft + 1) + ", col " + (fright + 1) + ")" , null);
+                        RESULT = null;
+                     }
+                  :}
                ;
 
 var_decl       ::= type_spec:t ID:id SEMI 
@@ -124,7 +170,9 @@ var_decl       ::= type_spec:t ID:id SEMI
                ;
 
 func_decl      ::= type_spec:t ID:id LPAREN params:p RPAREN compound_stmt:s
-                  {: RESULT = new FuncDeclaration(tleft, tright, t, id, p, s); :}
+                  {: 
+                     RESULT = new FuncDeclaration(tleft, tright, t, id, p, s); 
+                  :}
                ;
 
 type_spec      ::= INT 
@@ -171,7 +219,9 @@ local_decl     ::= local_decl:dl var_decl:v
                   :}
                | var_decl:v
                   {: RESULT = new DeclarationList(vleft, vright, v, null); :}
-               | ;
+               | 
+                  {: RESULT = null; :}
+               ;
 
 stmt_list      ::= stmt_list:sl stmt:s 
                   {:
@@ -183,7 +233,9 @@ stmt_list      ::= stmt_list:sl stmt:s
                   :}
                | stmt:s
                   {: RESULT = new StatementList(sleft, sright, s, null); :}
-               | ;
+               | 
+                  {: RESULT = null; :}
+               ;
 
 stmt           ::= expr_stmt:e 
                   {: RESULT = e; :}
@@ -280,7 +332,27 @@ factor         ::= LPAREN expr:e RPAREN
                | var:v 
                   {: RESULT = v; :}
                | call:c 
-                  {: RESULT = c; :}
+                  {: 
+                     FuncExpression f = (FuncExpression) c;
+                     String funcStr = f.funcName + "(";
+                     StatementList args = f.args;
+                     while(args != null) {
+                        funcStr += "int";
+                        args = args.tail;
+                        if(args != null) {
+                           funcStr += ", ";
+                        }
+                     }
+                     funcStr += ")";
+                     if(!funcs.contains(funcStr)) {
+                        parser.report_error(
+                           "Function called is not defined (line " 
+                           + (f.row + 1) + ", col " + (f.col + 1) + ")"
+                           , null);
+                     }
+                     
+                     RESULT = c; 
+                  :}
                | NUM:n
                   {: RESULT = new IntExpression(nleft, nright, n); :}
                ;

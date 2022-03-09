@@ -1,5 +1,4 @@
 package absyn.Expressions;
-import java.beans.Expression;
 
 import absyn.AbsynVisitor;
 import absyn.Statements.ExpressionStatement;
