@@ -21,9 +21,9 @@ void printNum(int num, int numtimes){
     
 }
 void main(void) {
-    int printnum;
+    int printnum[5];
     int numtimes;
-    printnum = 5;
+    printnum[2] = 5;
     numtimes = 5;
-    printNum(printnum, numtimes);
+    printNum(printnum[2], numtimes);
 }

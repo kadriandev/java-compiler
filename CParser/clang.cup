@@ -119,6 +119,13 @@ dec_list       ::= dec_list:dl decl:de
                   :}
                | decl:d
                   {: RESULT = new DeclarationList(dleft, dright, d, null); :}
+               | dec_list:dl error SEMI
+                  {:
+                     parser.report_error("Syntax Error (line "+(dlleft+1)+", col "+(dlright+1)+")", null);
+                     RESULT = dl;
+                  :}
+               |
+                  {: RESULT = null; :}
                ;
             
 decl           ::= var_decl:v 
@@ -211,14 +218,60 @@ compound_stmt  ::= LBRACE:l local_decl:d stmt_list:s RBRACE
 
 local_decl     ::= local_decl:dl var_decl:v 
                   {:
+                     
                      DeclarationList d = dl;
-                     while( d.tail != null )
-                        d = d.tail;
-                     d.tail = new DeclarationList(dlleft, dlright, v, null);
+                     String varStr2 = "";
+                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
+                     if(((VarDeclaration)v).size > 0) {
+                        varStr += "[]";
+                     }
+                     
+                     if(global_vars.contains(varStr)) {
+                        parser.report_error("Global variable of the same name and type already exist (line " +
+                           (vleft + 1) + ", col " + (vright + 1) + ")", null);
+                     }
+
+                     if(d == null) {
+                        dl = new DeclarationList(vleft, vright, v, null);
+                     }else{
+                        while( d != null && d.tail != null) {
+                           varStr2 = ((VarDeclaration)(d.head)).type + " " + ((VarDeclaration)(d.head)).name;
+                           if(((VarDeclaration)(d.head)).size > 0) {
+                              varStr2 += "[]";
+                           }
+                           if(varStr.equals(varStr2)) {
+                              parser.report_error("Variable already exists (line " +
+                                 (vleft + 1) + ", col " + (vright + 1) + ")", null);
+                              break;
+                           }
+
+                           d = d.tail;
+                        }
+
+                        if(!varStr.equals(varStr2)) {
+                           d.tail = new DeclarationList(dlleft, dlright, v, null);
+                        }
+                     }
+                     
                      RESULT = dl;
                   :}
                | var_decl:v
-                  {: RESULT = new DeclarationList(vleft, vright, v, null); :}
+                  {: 
+                     DeclarationList dl = null;
+                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
+                     if(((VarDeclaration)v).size > 0) {
+                        varStr += "[]";
+                     }
+                     
+                     if(global_vars.contains(varStr)) {
+                        parser.report_error("Global variable of the same name and type already exist (line " +
+                           (vleft + 1) + ", col " + (vright + 1) + ")", null);
+                        dl = null;
+                     }else{
+                        dl = new DeclarationList(vleft, vright, v, null);
+                     }
+                     RESULT = dl;
+                  :}
                | 
                   {: RESULT = null; :}
                ;
@@ -226,13 +279,19 @@ local_decl     ::= local_decl:dl var_decl:v
 stmt_list      ::= stmt_list:sl stmt:s 
                   {:
                      StatementList d = sl;
-                     while( d.tail != null )
+                     while( d != null && d.tail != null )
                         d = d.tail;
                      d.tail = new StatementList(slleft, slright, s, null);
                      RESULT = sl;
                   :}
                | stmt:s
                   {: RESULT = new StatementList(sleft, sright, s, null); :}
+               | stmt_list:sl error:e
+                  {: 
+                     parser.report_error("Variable must be declared at the top of the function (line "+
+                        (eleft + 1) + ", col " + (eright + 1) + ")", null);
+                     RESULT = sl;
+                  :}
                | 
                   {: RESULT = null; :}
                ;
@@ -349,9 +408,12 @@ factor         ::= LPAREN expr:e RPAREN
                            "Function called is not defined (line " 
                            + (f.row + 1) + ", col " + (f.col + 1) + ")"
                            , null);
+                        RESULT = null;
+                     }else{
+                        RESULT = c;
                      }
                      
-                     RESULT = c; 
+                      
                   :}
                | NUM:n
                   {: RESULT = new IntExpression(nleft, nright, n); :}

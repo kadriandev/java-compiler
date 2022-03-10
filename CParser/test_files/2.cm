@@ -1,16 +1,14 @@
 /*
-*   Testing function not defined
-*   Testing variable already exists (Variables same scope)
-*   Testing function already exists
+*   Testing Syntax Error handling
 */
-int x;
+
 int x;
 
-/*void main(void){}*/
-
-void printNum(void){ /*---*/
+void printNum(void) {
     
 }
+
+ds;
 
 /*program for printing out a number a number of times*/
 void printNum(int num, int numtimes){
@@ -20,8 +18,8 @@ void printNum(int num, int numtimes){
         output(num);
         i = i + 1;
     }
-    
 }
+
 /*
 *main function
 */
@@ -30,7 +28,6 @@ void main(void) {
     int numtimes;
     printNum = 1;
     numtimes = 5;
-    int numtimes; /*---*/
     printNum(printnum, numtimes);
-    closeConnection(int num, int numtimes); /*---*/
+    closeConnection(int num, int numtimes);
 }

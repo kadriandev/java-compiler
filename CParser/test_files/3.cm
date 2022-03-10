@@ -1,17 +1,13 @@
 /*
 *   Testing function defined after main
+*   Testing Function called is not defined
 *   Testing variable already exists (different scopes)
 */
 
 int i;
 
-/*void main(void){}*/
-
-void printNum(int i){
-
-}
-
 void main(void) {
+    int i;
     int printnum;
     int numtimes;
     printnum = 5;
@@ -26,6 +22,5 @@ void printNum(int num, int numtimes){
     while(i < 20){
         output(num);
         i = i + 1;
-    }
-    
+    }    
 }

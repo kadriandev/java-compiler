@@ -1,0 +1,28 @@
+/*
+*  Several Errors
+*/
+
+int numtimes;
+int numtimes;
+
+/*program for printing out a number a number of times*/
+void printNum(int num, int numtimes){
+    int i;
+    i = 0;
+    while(i < 20){
+        output(num);
+        i = i + 1;
+    }
+}
+
+void main(void) {
+    int test;
+    int printnum;
+    printnum = 5;
+    numtimes = 5;
+    wontWork(printnum, numtimes);
+}
+
+void error(void) {
+
+}
