@@ -17,7 +17,8 @@ import java.util.ArrayList;
 /* Parser code to change the way the parser reports errors (include
    line and column number of the error). */
 parser code {:
-    
+   
+   String scope = "global";
    ArrayList<String> global_vars = new ArrayList<String>();
    ArrayList<String> funcs = new ArrayList<String>() {
       {
@@ -89,7 +90,7 @@ terminal String ID, NUM, INPUT, OUTPUT;
 terminal ERROR;
 
 non terminal DeclarationList program, dec_list, params, param_list, local_decl;
-non terminal Declaration decl, var_decl, func_decl, param;
+non terminal Declaration decl, var_decl, func_decl, func_sig, param;
 non terminal StatementList stmt_list, args, arg_list;
 non terminal Statement stmt, if_stmt, expr_stmt, while_stmt, return_stmt;
 non terminal CompoundStatement compound_stmt;
@@ -129,24 +130,52 @@ dec_list       ::= dec_list:dl decl:de
                ;
             
 decl           ::= var_decl:v 
-                  {:
-                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
-                     if(((VarDeclaration)v).size > 0) {
-                        varStr += "[]";
-                     }
+                  {: RESULT = v; :}
+               | func_decl:f
+                  {: RESULT = f; :}
+               ;
+
+var_decl       ::= type_spec:t ID:id SEMI 
+                  {: 
+                     String varStr = t + " " + id;
                      if(!global_vars.contains(varStr)) {
                         global_vars.add(varStr);
-                        RESULT = v;
+                        RESULT = new VarDeclaration(tleft, tright, t, id, null);;
                      }else {
-                        parser.report_error("Variable already exists (line " 
-                           + (vleft + 1) + ", col " + (vright + 1) + ")" , null);
+                        parser.report_error("Global variable already exists (line " 
+                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
                         RESULT = null;
                      }
                   :}
-               | func_decl:f
+               | type_spec:t ID:id LBRACKET NUM:n RBRACKET SEMI
+                  {:
+                     String varStr = t + " " + id + "[]";
+                     if(!global_vars.contains(varStr)) {
+                        global_vars.add(varStr);
+                        RESULT = new VarDeclaration(tleft, tright, t, id, Integer.parseInt(n));
+                     }else {
+                        parser.report_error("Global variable already exists (line " 
+                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
+                        RESULT = null;
+                     } 
+                  :}
+               ;
+
+func_decl      ::= func_sig:f compound_stmt:s
+                  {: 
+                     FuncDeclaration d = (FuncDeclaration)f;
+                     if(d != null) {
+                        d.setFuncBody(s);
+                     }
+                     scope = "global";
+                     RESULT = d; 
+                  :}
+               ;
+         
+func_sig       ::= type_spec:t ID:id LPAREN params:p RPAREN
                   {: 
                      String args = "";
-                     DeclarationList curr = ((FuncDeclaration)f).params;
+                     DeclarationList curr = p;
                      while( curr != null ) {
                         args += ((VarDeclaration) curr.head).type;
                         curr = curr.tail;
@@ -154,31 +183,20 @@ decl           ::= var_decl:v
                            args += ", ";
                         }
                      }
-                     String funcStr = ((FuncDeclaration)f).name + "(" + args + ")";
+                     String funcStr = id + "(" + args + ")";
                      if(funcs.contains("main()")){ 
                         parser.report_error("Function declared after main function (line " 
-                           + (fleft + 1) + ", col " + (fright + 1) + ")" , null);
+                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
                         RESULT = null;
                      }else if(!funcs.contains(funcStr)) {
+                        scope = funcStr;
                         funcs.add(funcStr);
-                        RESULT = f;
+                        RESULT = new FuncDeclaration(tleft, tright, t, id, p, null); ;
                      } else {
                         parser.report_error("Function already exists (line " 
-                           + (fleft + 1) + ", col " + (fright + 1) + ")" , null);
+                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
                         RESULT = null;
                      }
-                  :}
-               ;
-
-var_decl       ::= type_spec:t ID:id SEMI 
-                  {: RESULT = new VarDeclaration(tleft, tright, t, id, null); :}
-               | type_spec:t ID:id LBRACKET NUM:n RBRACKET SEMI
-                  {: RESULT = new VarDeclaration(tleft, tright, t, id, Integer.parseInt(n)); :}
-               ;
-
-func_decl      ::= type_spec:t ID:id LPAREN params:p RPAREN compound_stmt:s
-                  {: 
-                     RESULT = new FuncDeclaration(tleft, tright, t, id, p, s); 
                   :}
                ;
 
@@ -218,38 +236,34 @@ compound_stmt  ::= LBRACE:l local_decl:d stmt_list:s RBRACE
 
 local_decl     ::= local_decl:dl var_decl:v 
                   {:
-                     
-                     DeclarationList d = dl;
-                     String varStr2 = "";
-                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
-                     if(((VarDeclaration)v).size > 0) {
-                        varStr += "[]";
-                     }
-                     
-                     if(global_vars.contains(varStr)) {
-                        parser.report_error("Global variable of the same name and type already exist (line " +
-                           (vleft + 1) + ", col " + (vright + 1) + ")", null);
-                     }
-
-                     if(d == null) {
-                        dl = new DeclarationList(vleft, vright, v, null);
-                     }else{
-                        while( d != null && d.tail != null) {
-                           varStr2 = ((VarDeclaration)(d.head)).type + " " + ((VarDeclaration)(d.head)).name;
-                           if(((VarDeclaration)(d.head)).size > 0) {
-                              varStr2 += "[]";
-                           }
-                           if(varStr.equals(varStr2)) {
-                              parser.report_error("Variable already exists (line " +
-                                 (vleft + 1) + ", col " + (vright + 1) + ")", null);
-                              break;
-                           }
-
-                           d = d.tail;
+                     if(v != null) {
+                        DeclarationList d = dl;
+                        String varStr2 = "";
+                        String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
+                        if(((VarDeclaration)v).size > 0) {
+                           varStr += "[]";
                         }
+                        
+                       if(d == null) {
+                           dl = new DeclarationList(vleft, vright, v, null);
+                        }else{
+                           while( d != null && d.tail != null) {
+                              varStr2 = ((VarDeclaration)(d.head)).type + " " + ((VarDeclaration)(d.head)).name;
+                              if(((VarDeclaration)(d.head)).size > 0) {
+                                 varStr2 += "[]";
+                              }
+                              if(varStr.equals(varStr2)) {
+                                 parser.report_error("Variable already exists (line " +
+                                    (vleft + 1) + ", col " + (vright + 1) + ")", null);
+                                 break;
+                              }
 
-                        if(!varStr.equals(varStr2)) {
-                           d.tail = new DeclarationList(dlleft, dlright, v, null);
+                              d = d.tail;
+                           }
+
+                           if(!varStr.equals(varStr2)) {
+                              d.tail = new DeclarationList(vleft, vright, v, null);
+                           }
                         }
                      }
                      
@@ -258,17 +272,17 @@ local_decl     ::= local_decl:dl var_decl:v
                | var_decl:v
                   {: 
                      DeclarationList dl = null;
-                     String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
-                     if(((VarDeclaration)v).size > 0) {
-                        varStr += "[]";
-                     }
-                     
-                     if(global_vars.contains(varStr)) {
-                        parser.report_error("Global variable of the same name and type already exist (line " +
-                           (vleft + 1) + ", col " + (vright + 1) + ")", null);
-                        dl = null;
-                     }else{
-                        dl = new DeclarationList(vleft, vright, v, null);
+                     if(v != null) {
+                        String varStr = ((VarDeclaration)v).type + " " + ((VarDeclaration)v).name;
+                        if(((VarDeclaration)v).size > 0) {
+                           varStr += "[]";
+                        }
+                        
+                        if(global_vars.contains(varStr)) {
+                           dl = null;
+                        }else{
+                           dl = new DeclarationList(vleft, vright, v, null);
+                        }
                      }
                      RESULT = dl;
                   :}

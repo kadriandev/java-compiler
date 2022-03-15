@@ -19,6 +19,10 @@ public class FuncDeclaration extends Declaration {
         this.funcBody = funcBody;
     }
 
+    public void setFuncBody(CompoundStatement funcBody) {
+        this.funcBody = funcBody; 
+    }
+
     public void accept(AbsynVisitor visitor, int level) {
         visitor.visit( this, level );
     }

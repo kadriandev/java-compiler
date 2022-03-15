@@ -2,6 +2,7 @@
    algorithm to compute a gcd */
 
 int x;
+int x;
 
 int gcd(int u, int v) {
   if (v == 0) return u;
