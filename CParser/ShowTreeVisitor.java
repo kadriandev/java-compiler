@@ -1,3 +1,6 @@
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import absyn.*;
 import absyn.Declaration.*;
 import absyn.Expressions.*;
@@ -6,9 +9,35 @@ import absyn.Statements.*;
 public class ShowTreeVisitor implements AbsynVisitor {
 
   final static int SPACES = 4;
+  private FileOutputStream outfile;
+  private boolean error = false;
+
+  public ShowTreeVisitor(Absyn result, FileOutputStream out) {
+    this.outfile = out;
+    printMessage("The abstract syntax tree is:", 0);
+    result.accept(this, 0); 
+  }
+
+  public boolean hasSytaxErrors(){
+    return error;
+  }
+
+  private void printMessage(String message, int level) {
+      indent(level);
+      try{
+        this.outfile.write((message + "\n").getBytes());
+      }catch(IOException e) {
+        System.err.println("Error writing to output file");
+      }
+      //System.out.println(message);
+  }
 
   private void indent( int level ) {
-    for( int i = 0; i < level * SPACES; i++ ) System.out.print( " " );
+    try{
+      for( int i = 0; i < level * SPACES; i++ ) this.outfile.write(" ".getBytes());
+    }catch(IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public void visit( DeclarationList expList, int level ) {
@@ -26,90 +55,83 @@ public class ShowTreeVisitor implements AbsynVisitor {
   }
 
   public void visit( AssignExpression exp, int level ) {
-    indent( level );
-    System.out.println( "AssignExp:" );
+    printMessage("AssignExp:", level);
     level++;
     exp.lhs.accept( this, level );
     exp.rhs.accept( this, level );
   }
 
   public void visit( IfStatement exp, int level ) {
-    indent( level );
-    System.out.println( "IfExp:" );
+    printMessage("IfExp:", level);
     level++;
     exp.test.accept( this, level );
-    System.out.println();
+    printMessage("", level);
     exp.ifblock.accept( this, level );
     
     if (exp.elseblock != null ) {
-      indent(--level);
-      System.out.println("ElseExp:"); 
+      printMessage("ElseExp:", --level); 
       exp.elseblock.accept( this, ++level );
     }
   }
 
   public void visit( IntExpression exp, int level ) {
-    indent( level );
-    System.out.println( "IntExp: " + exp.value ); 
+    printMessage("IntExp: " + exp.value, level);
   }
 
   public void visit( OpExpression exp, int level ) {
-    indent( level );
-    System.out.print( "OpExp:" ); 
+    String message = "OpExp:";
     switch( exp.op ) {
       case OpExpression.PLUS:
-        System.out.println( " + " );
+        message += " + ";
         break;
       case OpExpression.MINUS:
-        System.out.println( " - " );
+        message += " - ";
         break;
       case OpExpression.TIMES:
-        System.out.println( " * " );
+        message += " * ";
         break;
       case OpExpression.OVER:
-        System.out.println( " / " );
+        message += " / ";
         break;
       case OpExpression.EQ:
-        System.out.println( " = " );
+        message += " = ";
         break;
       case OpExpression.LT:
-        System.out.println( " < " );
+        message +=  " < ";
         break;
       case OpExpression.GT:
-        System.out.println( " > " );
+        message += " > ";
         break;
       default:
-        System.out.println( "Unrecognized operator at line " + exp.row + " and column " + exp.col);
+        message += "Unrecognized operator at line " + exp.row + " and column " + exp.col;
     }
+    printMessage(message, level);
     level++;
     exp.left.accept( this, level );
     exp.right.accept( this, level );
   }
 
   public void visit( WhileStatement exp, int level ) {
-    indent( level );
-    System.out.println( "WhileExp:" );
+    printMessage("WhileExp:", level);
     level++;
     exp.test.accept( this, level );
-    System.out.println();
+    printMessage("", level);
     exp.exps.accept( this, level );
   }
 
   public void visit( VarExpression exp, int level ) {
-    indent( level );
     String varStr = exp.name;
     if(exp.index != null) {
       varStr += "[]";
     }
-    System.out.println( "VarExp: " + varStr );
+    printMessage("VarExp: " + varStr, level);
     if(exp.index != null) {
       exp.index.accept(this, ++level);
     }
   }
 
   public void visit( ReturnStatement exp, int level ) {
-    indent( level );
-    System.out.println( "ReturnExp:" );
+    printMessage("ReturnExp:", level);
     exp.exp.accept( this, ++level );
   }
 
@@ -126,30 +148,27 @@ public class ShowTreeVisitor implements AbsynVisitor {
       }
     }
     
-    System.out.println( "Function Declaration: " + exp.type + " " + exp.name + "(" + args + ")");
+    printMessage("Function Declaration: " + exp.type + " " + exp.name + "(" + args + ")", level);
     exp.funcBody.accept( this, ++level );
     
   }
 
   public void visit( FuncExpression exp, int level ) {
-    indent(level);
-    System.out.println( "Function Call: " + exp.funcName);
+    printMessage("Function Call: " + exp.funcName, level);
     if(exp.args != null)
       exp.args.accept(this, ++level);
   }
 
   public void visit(VarDeclaration node, int level) {
-    indent(level);
     String s = "VarDecl: " + node.type + " " + node.name;
     if(node.size > 0) {
       s += "[" + node.size + "]";
     }
-    System.out.println(s);
+    printMessage(s, level);
   }
 
   @Override
   public void visit(CompoundStatement node, int level) {
-    
     if(node.local_decl != null) {
       node.local_decl.accept(this, level);
     }
@@ -158,7 +177,4 @@ public class ShowTreeVisitor implements AbsynVisitor {
       node.statements.accept(this, level);
     }
   }
-
-
-
 }

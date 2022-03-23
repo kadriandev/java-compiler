@@ -1,0 +1,34 @@
+The abstract syntax tree is:
+VarDecl: int x
+Function Declaration: int gcd(int u, int v)
+    IfExp:
+        OpExp: = 
+            VarExp: v
+            IntExp: 0
+        
+        ReturnExp:
+            VarExp: u
+    ElseExp:
+        ReturnExp:
+            Function Call: gcd
+                VarExp: v
+                OpExp: - 
+                    VarExp: u
+                    OpExp: * 
+                        OpExp: / 
+                            VarExp: u
+                            VarExp: v
+                        VarExp: v
+Function Declaration: void main()
+    VarDecl: int x
+    VarDecl: int y
+    AssignExp:
+        VarExp: x
+        Function Call: input
+    AssignExp:
+        VarExp: y
+        Function Call: input
+    Function Call: output
+        Function Call: gcd
+            VarExp: x
+            VarExp: y

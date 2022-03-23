@@ -8,9 +8,6 @@ void printNum(void) {
     
 }
 
-ds;
-
-/*program for printing out a number a number of times*/
 void printNum(int num, int numtimes){
     int i;
     i = 0;

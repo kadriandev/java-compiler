@@ -19,14 +19,47 @@ class Main {
   public final static boolean SHOW_TREE = true;
   static public void main(String argv[]) {    
     /* Start the parser */
+    int showSymbolList = 0;
+    String fileName = argv[0].split("/")[1];
+    String outFile = "output_files/" + fileName.substring(0, fileName.length() - 3);
+    FileOutputStream out = null;
+
+    for(String s: argv) {
+      if(s.equals("-s")) {
+        showSymbolList = 2;
+      }else if(s.equals("-a") && showSymbolList < 1) {
+        showSymbolList = 1;
+      }
+    }
+
     try {
       parser p = new parser(new Lexer(new FileReader(argv[0])));
-      Absyn result = (Absyn)(p.parse().value);      
+      Absyn result = (Absyn)(p.parse().value);
+      
+      
       if (SHOW_TREE && result != null) {
-         System.out.println("The abstract syntax tree is:");
-         ShowTreeVisitor visitor = new ShowTreeVisitor();
-         result.accept(visitor, 0); 
+        if(showSymbolList >= 1) {
+          out = new FileOutputStream(outFile + ".abs");
+        }else{
+          out = null;
+        }
+        ShowTreeVisitor visitor = new ShowTreeVisitor(result, out);
+        
+        if(out != null)
+          out.close();
       }
+      
+      
+      if(showSymbolList == 2) {
+        out = new FileOutputStream(outFile + ".sym");
+      }else{
+        out = null;
+      }  
+      SemanticAnalyzer analyzer = new SemanticAnalyzer(result, out);
+      
+      if(out != null)
+        out.close();
+
     } catch (Exception e) {
       /* do cleanup here -- possibly rethrow e */
       e.printStackTrace();
