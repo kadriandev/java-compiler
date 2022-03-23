@@ -130,7 +130,22 @@ dec_list       ::= dec_list:dl decl:de
                ;
             
 decl           ::= var_decl:v 
-                  {: RESULT = v; :}
+                  {: 
+                     if(v != null) {
+                        String varStr = v.type + " " + v.name;
+                        if(!global_vars.contains(varStr)) {
+                           global_vars.add(varStr);
+                           RESULT = v;
+                        }else{
+                           parser.report_error("Global variable already exists (line " 
+                              + (v.row + 1) + ", col " + (v.col + 1) + ")", null);
+                           RESULT = null;
+                        }
+                         
+                     }else {
+                        RESULT = null;
+                     }
+                  :}
                | func_decl:f
                   {: RESULT = f; :}
                ;
@@ -138,26 +153,12 @@ decl           ::= var_decl:v
 var_decl       ::= type_spec:t ID:id SEMI 
                   {: 
                      String varStr = t + " " + id;
-                     if(!global_vars.contains(varStr)) {
-                        global_vars.add(varStr);
-                        RESULT = new VarDeclaration(tleft, tright, t, id, null);;
-                     }else {
-                        parser.report_error("Global variable already exists (line " 
-                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
-                        RESULT = null;
-                     }
+                     RESULT = new VarDeclaration(tleft, tright, t, id, null);
                   :}
                | type_spec:t ID:id LBRACKET NUM:n RBRACKET SEMI
                   {:
                      String varStr = t + " " + id + "[]";
-                     if(!global_vars.contains(varStr)) {
-                        global_vars.add(varStr);
-                        RESULT = new VarDeclaration(tleft, tright, t, id, Integer.parseInt(n));
-                     }else {
-                        parser.report_error("Global variable already exists (line " 
-                           + (tleft + 1) + ", col " + (tright + 1) + ")" , null);
-                        RESULT = null;
-                     } 
+                     RESULT = new VarDeclaration(tleft, tright, t + "[]", id, Integer.parseInt(n));
                   :}
                ;
 
@@ -177,7 +178,7 @@ func_sig       ::= type_spec:t ID:id LPAREN params:p RPAREN
                      String args = "";
                      DeclarationList curr = p;
                      while( curr != null ) {
-                        args += ((VarDeclaration) curr.head).type;
+                        args += "int";
                         curr = curr.tail;
                         if(curr != null) {
                            args += ", ";
@@ -243,11 +244,11 @@ local_decl     ::= local_decl:dl var_decl:v
                         if(((VarDeclaration)v).size > 0) {
                            varStr += "[]";
                         }
-                        
-                       if(d == null) {
+
+                        if(d == null) {
                            dl = new DeclarationList(vleft, vright, v, null);
                         }else{
-                           while( d != null && d.tail != null) {
+                           while( d != null && d.head != null) {
                               varStr2 = ((VarDeclaration)(d.head)).type + " " + ((VarDeclaration)(d.head)).name;
                               if(((VarDeclaration)(d.head)).size > 0) {
                                  varStr2 += "[]";
@@ -258,7 +259,10 @@ local_decl     ::= local_decl:dl var_decl:v
                                  break;
                               }
 
-                              d = d.tail;
+                              if(d.tail == null)
+                                 break;
+                              else      
+                                 d = d.tail;
                            }
 
                            if(!varStr.equals(varStr2)) {
@@ -278,12 +282,10 @@ local_decl     ::= local_decl:dl var_decl:v
                            varStr += "[]";
                         }
                         
-                        if(global_vars.contains(varStr)) {
-                           dl = null;
-                        }else{
-                           dl = new DeclarationList(vleft, vright, v, null);
-                        }
+                        dl = new DeclarationList(vleft, vright, v, null);
+                        
                      }
+
                      RESULT = dl;
                   :}
                | 
