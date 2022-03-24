@@ -65,6 +65,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
+  /*
+    IS THIS A USELESS FUNCTION >?
+
+    0                      
+     ---------------------- ) ~   ~
+     ---------------------- )           ~   ~
+    0                                             ~   ~
+                                                          ~
+    IS THIS A USELESS FUNCTION >?                       ~~~~~~~
+  */
   public void printErrors() {
     System.err.println(this.errors);
   }
@@ -154,16 +164,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     NodeType type = lookup(varStr);
     if(type == null) {
-      System.out.println("Error: variable does not exist\n");
+      System.err.println("Error: variable does not exist\n");
     }else {
       exp.dtype = type.dec;
     }
 
-    // Check if inedx for arrays is an integer type
+    // Check if index for arrays is an integer type
     if(exp.index != null) {
       exp.index.accept(this, ++level);
       if(!exp.index.dtype.type.equals("int")){
-        System.out.println("Error: Array index must eb of type int (line " 
+        System.err.println("Error: Array index must be of type int (line " 
           + exp.index.row + ", col " + exp.index.col + ")");
       }
     }
@@ -175,7 +185,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     exp.rhs.accept( this, level );
 
     if(exp.lhs.dtype.type.equals("void") || exp.lhs.dtype.type != exp.rhs.dtype.type) {
-      System.out.println("Error: Cannot assign type " + exp.rhs.dtype.type + " to type " + 
+      System.err.println("Error: Cannot assign type " + exp.rhs.dtype.type + " to type " + 
         exp.lhs.dtype.type + " (line " + exp.row + ", col " + exp.col + ")");
     }
   }
@@ -194,6 +204,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
       delete(level);
       printMessage("Leaving the block", --level);
     }
+
+
   }
 
   public void visit( IntExpression exp, int level ) {
@@ -204,7 +216,10 @@ public class SemanticAnalyzer implements AbsynVisitor {
     exp.left.accept( this, level );
     exp.right.accept( this, level );
 
-    // TODO: Check if both left and right side are int types
+    /* TODO: Check if both left and right side are int types
+      IS THIS DONE??
+      IS THIS DONE??
+    */
     if(exp.left.dtype.type.equals("int") && exp.right.dtype.type.equals("int") 
       && (exp.op >= 0 && exp.op <= 3)) {
       exp.dtype = new VarDeclaration(exp.row, exp.col, "int", "", null);
@@ -212,7 +227,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
       && exp.op >= 4) {
         exp.dtype = new VarDeclaration(exp.row, exp.col, "boolean", "", null);
     } else {
-      System.out.println("Error: Cannot evaluate expression (line " 
+      System.err.println("Error: Cannot evaluate expression (line " 
         + exp.row + ", col " + exp.col + ")");
     }
   }
@@ -228,14 +243,14 @@ public class SemanticAnalyzer implements AbsynVisitor {
   public void visit( ReturnStatement exp, int level ) {
 
     if(currFunc == null) {
-      System.out.println("Error: Return can only be used inside a function body (line " 
+      System.err.println("Error: Return can only be used inside a function body (line " 
         + exp.row + ", col " + exp.col + ")");
     }
 
     exp.exp.accept( this, ++level );
     NodeType func = lookup(currFunc.name);
     if(!exp.exp.dtype.type.equals(func.dec.type)) {
-      System.out.println("Error: Return type doesn't match type specified in function declaration (line " 
+      System.err.println("Error: Return type doesn't match type specified in function declaration (line " 
         + exp.row + ", col " + exp.col + ")");
     }
   }
@@ -258,8 +273,6 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }else{
       exp.dtype = n.dec;
     }
-
-    
     
   }
 
