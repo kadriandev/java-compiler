@@ -204,8 +204,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
       delete(level);
       printMessage("Leaving the block", --level);
     }
-
-
+    if (exp.ifblock.dtype.type != "boolean" || exp.elseblock.dtype.type != "boolean") {
+      System.err.println("Error! Test conditions must be of type boolean!");
+    }
   }
 
   public void visit( IntExpression exp, int level ) {
@@ -238,6 +239,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
     exp.exps.accept( this, ++level );
     delete(level);
     printMessage("Leaving the block", --level);
+    if (exp.exps.dtype.type != "boolean" || exp.test.dtype.type != "boolean") {
+      System.out.println("Error! Test conditions must be of type boolean!");
+    }
   }
 
   public void visit( ReturnStatement exp, int level ) {
@@ -273,6 +277,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }else{
       exp.dtype = n.dec;
     }
+
+    
     
   }
 
