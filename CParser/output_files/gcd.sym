@@ -11,7 +11,8 @@ Entering the global scope:
         x: int
         y: int
     Leaving function scope
-    x: int
+    x: int[y]
+    y: int
     gcd: (int,int) -> int
     main: (void) -> void
 Leaving global scope

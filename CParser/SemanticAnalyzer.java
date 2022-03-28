@@ -65,16 +65,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  /*
-    IS THIS A USELESS FUNCTION >?
-
-    0                      
-     ---------------------- ) ~   ~
-     ---------------------- )           ~   ~
-    0                                             ~   ~
-                                                          ~
-    IS THIS A USELESS FUNCTION >?                       ~~~~~~~
-  */
+ 
   public void printErrors() {
     System.err.println(this.errors);
   }
@@ -216,10 +207,6 @@ public class SemanticAnalyzer implements AbsynVisitor {
     exp.left.accept( this, level );
     exp.right.accept( this, level );
 
-    /* TODO: Check if both left and right side are int types
-      IS THIS DONE??
-      IS THIS DONE??
-    */
     if(exp.left.dtype.type.equals("int") && exp.right.dtype.type.equals("int") 
       && (exp.op >= 0 && exp.op <= 3)) {
       exp.dtype = new VarDeclaration(exp.row, exp.col, "int", "", null);

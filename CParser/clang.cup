@@ -160,6 +160,11 @@ var_decl       ::= type_spec:t ID:id SEMI
                      String varStr = t + " " + id + "[]";
                      RESULT = new VarDeclaration(tleft, tright, t + "[]", id, Integer.parseInt(n));
                   :}
+               | type_spec:t ID:id LBRACKET ID:n RBRACKET SEMI
+                  {:
+                     String varStr = t + " " + id + "[" + n + "]";
+                     RESULT = new VarDeclaration(tleft, tright, t + "[" + n + "]", id, null);
+                  :}
                ;
 
 func_decl      ::= func_sig:f compound_stmt:s

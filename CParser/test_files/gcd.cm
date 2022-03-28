@@ -1,8 +1,8 @@
 /* A program to perform Euclid's 
    algorithm to compute a gcd */
 
-int x;
-int x;
+int y;
+int x[y];
 
 int gcd(int u, int v) {
   if (v == 0) return u;
