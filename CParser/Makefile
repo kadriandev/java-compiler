@@ -22,4 +22,4 @@ parser.java: clang.cup
 	$(CUP) -expect 3 clang.cup
 
 clean:
-	rm -f parser.java Lexer.java sym.java *.class absyn/*/*.class absyn/*.class *~
+	rm -f parser.java Lexer.java sym.java *.class absyn/*/*.class absyn/*.class *~ output_files/*
