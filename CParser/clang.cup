@@ -158,7 +158,7 @@ var_decl       ::= type_spec:t ID:id SEMI
                | type_spec:t ID:id LBRACKET NUM:n RBRACKET SEMI
                   {:
                      String varStr = t + " " + id + "[]";
-                     RESULT = new VarDeclaration(tleft, tright, t + "[]", id, Integer.parseInt(n));
+                     RESULT = new VarDeclaration(tleft, tright, t, id, Integer.parseInt(n));
                   :}
                ;
 

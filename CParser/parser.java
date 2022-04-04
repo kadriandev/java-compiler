@@ -567,7 +567,7 @@ class CUP$parser$actions {
 		String n = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-2)).value;
 		
                      String varStr = t + " " + id + "[]";
-                     RESULT = new VarDeclaration(tleft, tright, t + "[]", id, Integer.parseInt(n));
+                     RESULT = new VarDeclaration(tleft, tright, t, id, Integer.parseInt(n));
                   
               CUP$parser$result = parser.getSymbolFactory().newSymbol("var_decl",6, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }

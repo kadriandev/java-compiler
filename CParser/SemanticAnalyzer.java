@@ -45,7 +45,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
           funcStr += (") -> " + type.dec.type);
           printMessage(funcStr, 1);
         }else if(type.dec instanceof VarDeclaration) {
-          printMessage(type.name + ": " + type.dec.type, 1);
+          if(((VarDeclaration)(type.dec)).size != null){
+            printMessage(type.name + ": " + type.dec.type + "[" + ((VarDeclaration)(type.dec)).size + "]", 1);
+          }else {
+            printMessage(type.name + ": " + type.dec.type, 1);
+          }
         }
       }
     }
