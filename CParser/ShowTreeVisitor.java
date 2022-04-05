@@ -15,14 +15,14 @@ public class ShowTreeVisitor implements AbsynVisitor {
   public ShowTreeVisitor(Absyn result, FileOutputStream out) {
     this.outfile = out;
     printMessage("The abstract syntax tree is:", 0);
-    result.accept(this, 0); 
+    result.accept(this, 0, false); 
   }
 
   public boolean hasSytaxErrors(){
     return error;
   }
 
-  private void printMessage(String message, int level) {
+  private void printMessage(String message, int level ) {
       indent(level);
       try{
         this.outfile.write((message + "\n").getBytes());
@@ -40,45 +40,45 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
   }
 
-  public void visit( DeclarationList expList, int level ) {
+  public void visit( DeclarationList expList, int level, boolean isAddr ) {
     while( expList != null && expList.head != null) {
-      expList.head.accept( this, level );
+      expList.head.accept( this, level, false );
       expList = expList.tail;
     } 
   }
 
-  public void visit( StatementList expList, int level ) {
+  public void visit( StatementList expList, int level, boolean isAddr ) {
     while( expList != null && expList.head != null) {
-      expList.head.accept( this, level );
+      expList.head.accept( this, level, false );
       expList = expList.tail;
     } 
   }
 
-  public void visit( AssignExpression exp, int level ) {
+  public void visit( AssignExpression exp, int level, boolean isAddr) {
     printMessage("AssignExp:", level);
     level++;
-    exp.lhs.accept( this, level );
-    exp.rhs.accept( this, level );
+    exp.lhs.accept( this, level, false );
+    exp.rhs.accept( this, level, false );
   }
 
-  public void visit( IfStatement exp, int level ) {
+  public void visit( IfStatement exp, int level, boolean isAddr ) {
     printMessage("IfExp:", level);
     level++;
-    exp.test.accept( this, level );
+    exp.test.accept( this, level, false );
     printMessage("", level);
-    exp.ifblock.accept( this, level );
+    exp.ifblock.accept( this, level, false );
     
     if (exp.elseblock != null ) {
       printMessage("ElseExp:", --level); 
-      exp.elseblock.accept( this, ++level );
+      exp.elseblock.accept( this, ++level, false );
     }
   }
 
-  public void visit( IntExpression exp, int level ) {
+  public void visit( IntExpression exp, int level, boolean isAddr ) {
     printMessage("IntExp: " + exp.value, level);
   }
 
-  public void visit( OpExpression exp, int level ) {
+  public void visit( OpExpression exp, int level, boolean isAddr ) {
     String message = "OpExp:";
     switch( exp.op ) {
       case OpExpression.PLUS:
@@ -107,35 +107,35 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
     printMessage(message, level);
     level++;
-    exp.left.accept( this, level );
-    exp.right.accept( this, level );
+    exp.left.accept( this, level, false );
+    exp.right.accept( this, level, false );
   }
 
-  public void visit( WhileStatement exp, int level ) {
+  public void visit( WhileStatement exp, int level, boolean isAddr ) {
     printMessage("WhileExp:", level);
     level++;
-    exp.test.accept( this, level );
+    exp.test.accept( this, level, false );
     printMessage("", level);
-    exp.exps.accept( this, level );
+    exp.exps.accept( this, level, false );
   }
 
-  public void visit( VarExpression exp, int level ) {
+  public void visit( VarExpression exp, int level, boolean isAddr ) {
     String varStr = exp.name;
     if(exp.index != null) {
       varStr += "[]";
     }
     printMessage("VarExp: " + varStr, level);
     if(exp.index != null) {
-      exp.index.accept(this, ++level);
+      exp.index.accept(this, ++level, false);
     }
   }
 
-  public void visit( ReturnStatement exp, int level ) {
+  public void visit( ReturnStatement exp, int level, boolean isAddr ) {
     printMessage("ReturnExp:", level);
-    exp.exp.accept( this, ++level );
+    exp.exp.accept( this, ++level, false );
   }
 
-  public void visit( FuncDeclaration exp, int level ) {
+  public void visit( FuncDeclaration exp, int level, boolean isAddr ) {
     indent( level );
     String args = "";
     DeclarationList curr = exp.params;
@@ -149,17 +149,17 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
     
     printMessage("Function Declaration: " + exp.type + " " + exp.name + "(" + args + ")", level);
-    exp.funcBody.accept( this, ++level );
+    exp.funcBody.accept( this, ++level, false );
     
   }
 
-  public void visit( FuncExpression exp, int level ) {
+  public void visit( FuncExpression exp, int level, boolean isAddr ) {
     printMessage("Function Call: " + exp.funcName, level);
     if(exp.args != null)
-      exp.args.accept(this, ++level);
+      exp.args.accept(this, ++level, false);
   }
 
-  public void visit(VarDeclaration node, int level) {
+  public void visit(VarDeclaration node, int level, boolean isAddr) {
     String s = "VarDecl: " + node.type + " " + node.name;
     if(node.size > 0) {
       s += "[" + node.size + "]";
@@ -168,13 +168,13 @@ public class ShowTreeVisitor implements AbsynVisitor {
   }
 
   @Override
-  public void visit(CompoundStatement node, int level) {
+  public void visit(CompoundStatement node, int level, boolean isAddr) {
     if(node.local_decl != null) {
-      node.local_decl.accept(this, level);
+      node.local_decl.accept(this, level, false);
     }
 
     if(node.statements != null) {
-      node.statements.accept(this, level);
+      node.statements.accept(this, level, false);
     }
   }
 }

@@ -1,30 +1,25 @@
 /*
-*   Testing Syntax Error handling
+*   Variable is not subscriptable
+*   Array index must be of type int
 */
+
 
 int x;
 
-void printNum(void) {
-    
+void test(void) {
+  output(0);
 }
 
-void printNum(int num, int numtimes){
-    int i;
-    i = 0;
-    while(i < 20){
-        output(num);
-        i = i + 1;
-    }
+int gcd(int u, int v) {
+  if (v == 0) return u;
+  else return gcd(v, u - u/v*v);
 }
 
-/*
-*main function
-*/
 void main(void) {
-    int printnum;
-    int numtimes;
-    printNum = 1;
-    numtimes = 5;
-    printNum(printnum, numtimes);
-    closeConnection(int num, int numtimes);
+  int x; int y;
+  y = x[2];
+  y = x[test()];
+  x = input();
+  y = input();
+  output(gcd(x, y));
 }

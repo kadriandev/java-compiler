@@ -24,7 +24,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     this.printSymbols = out != null;
     printMessage("Entering the global scope:", 0);
     int level = 0;
-    result.accept(this, ++level);
+    result.accept(this, ++level, false);
 
     for(ArrayList<NodeType> arr: map.values()) {
       for(NodeType type: arr) {
@@ -104,44 +104,44 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit( DeclarationList expList, int level ) {
+  public void visit( DeclarationList expList, int level, boolean isAddr ) {
     while( expList != null && expList.head != null) {
-      expList.head.accept( this, level );
+      expList.head.accept( this, level, false );
       expList = expList.tail;
     } 
   }
 
-  public void visit(VarDeclaration node, int level) {
+  public void visit(VarDeclaration node, int level, boolean isAddr) {
     NodeType type = new NodeType(node.name, node, level);
     insert(type);
     if(level > 1)
       printMessage(node.name + ": " + node.type, level);
   }
 
-  public void visit( FuncDeclaration exp, int level ) {
+  public void visit( FuncDeclaration exp, int level, boolean isAddr ) {
     printMessage( "Entering the function scope for " + exp.name + ":", level);
     insert(new NodeType(exp.name, exp, level));
     this.currFunc = exp;
     level++;
     DeclarationList dl = exp.params;
     while(dl != null && dl.head != null) {
-      dl.head.accept(this, level);
+      dl.head.accept(this, level, false);
       dl = dl.tail;
     }
-    exp.funcBody.accept( this, level );
+    exp.funcBody.accept( this, level, false );
     this.currFunc = null;
     delete(level);
     printMessage("Leaving function scope", --level);
   }
 
-  public void visit( StatementList expList, int level ) {
+  public void visit( StatementList expList, int level, boolean isAddr ) {
     while( expList != null && expList.head != null) {
-      expList.head.accept( this, level );
+      expList.head.accept( this, level, false );
       expList = expList.tail;
     } 
   }
 
-  public void visit( VarExpression exp, int level ) {
+  public void visit( VarExpression exp, int level, boolean isAddr ) {
     String varStr = exp.name;
     NodeType type = lookup(varStr);
 
@@ -157,7 +157,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Check if index for arrays is an integer type
     if(exp.index != null) {
-      exp.index.accept(this, ++level);
+      exp.index.accept(this, ++level, false);
       if(!exp.index.dtype.type.equals("int")){
         System.err.println("Error: Array index must be of type int (line " 
           + (exp.index.row + 1) + ", col " + exp.index.col + ")");
@@ -166,17 +166,17 @@ public class SemanticAnalyzer implements AbsynVisitor {
   }
 
 
-  public void visit( AssignExpression exp, int level ) {
-    exp.lhs.accept( this, level );
-    exp.rhs.accept( this, level );
+  public void visit( AssignExpression exp, int level, boolean isAddr ) {
+    exp.lhs.accept( this, level, false );
+    exp.rhs.accept( this, level, false );
     if(exp.lhs.dtype.type.equals("void") || exp.lhs.dtype.type != exp.rhs.dtype.type) {
       System.err.println("Error: Cannot assign type " + exp.rhs.dtype.type + " to type " + 
         exp.lhs.dtype.type + " (line " + (exp.row + 1) + ", col " + exp.col + ")");
     }
   }
 
-  public void visit( IfStatement exp, int level ) {
-    exp.test.accept( this, level );
+  public void visit( IfStatement exp, int level, boolean isAddr ) {
+    exp.test.accept( this, level, false );
 
     if (exp.test.dtype.type != "int" && exp.test.dtype.type != "boolean") {
       System.err.println("Error: If statement test must be an int or int comparison (line " 
@@ -184,25 +184,25 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     printMessage("Entering a new block:", level);
-    exp.ifblock.accept( this, ++level );
+    exp.ifblock.accept( this, ++level, false );
     delete(level);
     printMessage("Leaving the block", --level);
 
     if (exp.elseblock != null ) {
       printMessage("Entering a new block:", level);
-      exp.elseblock.accept( this, ++level );
+      exp.elseblock.accept( this, ++level, false );
       delete(level);
       printMessage("Leaving the block", --level);
     }
   }
 
-  public void visit( IntExpression exp, int level ) {
+  public void visit( IntExpression exp, int level, boolean isAddr ) {
     exp.dtype = new VarDeclaration(exp.row, exp.col, "int", "", null);
   }
 
-  public void visit( OpExpression exp, int level ) { 
-    exp.left.accept( this, level );
-    exp.right.accept( this, level );
+  public void visit( OpExpression exp, int level, boolean isAddr ) { 
+    exp.left.accept( this, level, false );
+    exp.right.accept( this, level, false );
 
     if(exp.left.dtype.type.equals("int") && exp.right.dtype.type.equals("int") 
       && (exp.op >= 0 && exp.op <= 3)) {
@@ -217,8 +217,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit( WhileStatement exp, int level ) {
-    exp.test.accept( this, level );
+  public void visit( WhileStatement exp, int level, boolean isAddr ) {
+    exp.test.accept( this, level, false );
 
     if (exp.test.dtype.type != "int" && exp.test.dtype.type != "boolean") {
       System.err.println("Error: While statement test must be an int or int comparison (line " 
@@ -226,19 +226,19 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     printMessage("Entering a new block:", level);
-    exp.exps.accept( this, ++level );
+    exp.exps.accept( this, ++level, false );
     delete(level);
     printMessage("Leaving the block", --level);
   }
 
-  public void visit( ReturnStatement exp, int level ) {
+  public void visit( ReturnStatement exp, int level, boolean isAddr ) {
 
     if(currFunc == null) {
       System.err.println("Error: Return can only be used inside a function body (line " 
         + (exp.row + 1) + ", col " + exp.col + ")");
     }
 
-    exp.exp.accept( this, ++level );
+    exp.exp.accept( this, ++level, false );
     NodeType func = lookup(currFunc.name);
     if(!exp.exp.dtype.type.equals(func.dec.type)) {
       System.err.println("Error: Return type doesn't match type specified in function declaration (line " 
@@ -246,9 +246,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit( FuncExpression exp, int level ) {
+  public void visit( FuncExpression exp, int level, boolean isAddr ) {
     if(exp.args != null)
-      exp.args.accept(this, ++level);
+      exp.args.accept(this, ++level, false);
 
     NodeType n = lookup(exp.funcName);
     // TODO: Check if each arg is the right type
@@ -263,13 +263,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(CompoundStatement node, int level) {
+  public void visit(CompoundStatement node, int level, boolean isAddr) {
     if(node.local_decl != null) {
-      node.local_decl.accept(this, level);
+      node.local_decl.accept(this, level, false);
     }
 
     if(node.statements != null) {
-      node.statements.accept(this, level);
+      node.statements.accept(this, level, false);
     }
   }
 

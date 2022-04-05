@@ -1,33 +1,19 @@
 /*
-*   Testing comments
-*   Testing declaring functions
-*   Testing using functions
-*   Testing while loops
-*   Testing variable declarations
-*   Testing function parameters
-*   Testing scope correctness
+*   No errors
 */
 
 
-void printNum(int num, int numtimes){
-    int i;
-    i = 0;
-    if(i < 20){
-        output(num);
-        i = i + 1;
-    }else{
+int x;
 
-    }
+int gcd(int u, int v) {
+  if (v == 0) return u;
+  else return gcd(v, u - u/v*v);
 }
 
-int count(int arr[]) {
-    
-}
 
 void main(void) {
-    int printnum[5];
-    int numtimes;
-    printnum[2] = 5;
-    numtimes = 5;
-    printNum(printnum[2], numtimes);
+  int x; int y;
+  x = input();
+  y = input();
+  output(gcd(x, y));
 }
