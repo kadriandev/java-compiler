@@ -114,8 +114,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
   public void visit(VarDeclaration node, int level) {
     NodeType type = new NodeType(node.name, node, level);
     insert(type);
-    if(level > 1)
-      printMessage(node.name + ": " + node.type, level);
+    if(level > 1){
+      if(node.size != 0){
+        printMessage(node.name + ": " + node.type + "[" + node.size + "]", level);
+      }else{
+        printMessage(node.name + ": " + node.type, level);
+      }
+    }
   }
 
   public void visit( FuncDeclaration exp, int level ) {
@@ -148,7 +153,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     if(type == null) {
       System.err.println("Error: variable does not exist\n");
     }else {
-      if(type.dec.type.equals("int") && exp.index != null) {
+      if(((VarDeclaration) type.dec).size == 0 && exp.index != null) {
         System.err.println("Error: Variable type is not subscriptable (line " 
         + (exp.row + 1) + ", col " + exp.index.col + ")");
       }
@@ -163,6 +168,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
           + (exp.index.row + 1) + ", col " + exp.index.col + ")");
       }
     }
+
   }
 
 
@@ -173,6 +179,21 @@ public class SemanticAnalyzer implements AbsynVisitor {
       System.err.println("Error: Cannot assign type " + exp.rhs.dtype.type + " to type " + 
         exp.lhs.dtype.type + " (line " + (exp.row + 1) + ", col " + exp.col + ")");
     }
+    if(exp.rhs instanceof VarExpression){
+      NodeType nodelhs = lookup(exp.lhs.dtype.name);
+      NodeType noderhs = lookup(exp.rhs.dtype.name);
+      boolean eqtype = (exp.lhs.dtype.type == exp.rhs.dtype.type); // Check that both types are equal
+      boolean lhsarr = (exp.lhs.index == null && ((VarDeclaration)(nodelhs.dec)).size != 0); // Check that lhs is an array 
+      boolean rhsarr = (((VarExpression)(exp.rhs)).index == null  && ((VarDeclaration)(noderhs.dec)).size != 0); // Check that rhs is an array
+      if(eqtype && ( !lhsarr && rhsarr) ) {
+        System.err.println("Error: Cannot assign type " + exp.rhs.dtype.type + " to type int array (line " +
+        (exp.row + 1) + ", col " + exp.col + ")");
+      } else if(eqtype && ( lhsarr && !rhsarr )) {
+        System.err.println("Error: Cannot assign type int array to type " + 
+        exp.lhs.dtype.type + " (line " + (exp.row + 1) + ", col " + exp.col + ")");
+      }
+    }
+
   }
 
   public void visit( IfStatement exp, int level ) {
