@@ -5,6 +5,7 @@ import absyn.Statements.CompoundStatement;
 
 public class FuncDeclaration extends Declaration {
     
+    public int funaddr;
     public DeclarationList params;    
     public CompoundStatement funcBody;
     

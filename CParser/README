@@ -17,3 +17,7 @@ by the visitor pattern in "ShowTreeVisitor.java".  Since some java files are
 generated automatically, they may contain variables that are not used, which 
 are safe to ignore in the compilation process.
 
+Make will also compile tm.
+
+To use tm, type
+  "./tm 1.tm"

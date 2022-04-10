@@ -18,14 +18,13 @@ public class ShowTreeVisitor implements AbsynVisitor {
     result.accept(this, 0, false); 
   }
 
-  public boolean hasSytaxErrors(){
-    return error;
-  }
-
   private void printMessage(String message, int level ) {
-      indent(level);
+      
       try{
-        this.outfile.write((message + "\n").getBytes());
+        if(this.outfile != null) {
+          indent(level);
+          this.outfile.write((message + "\n").getBytes());
+        }
       }catch(IOException e) {
         System.err.println("Error writing to output file");
       }

@@ -5,6 +5,8 @@ import absyn.AbsynVisitor;
 public class VarDeclaration extends Declaration {
 
     public Integer size = 0;
+    public int offset;
+    public int nestLevel;
     
     public VarDeclaration(int row, int col, String type, String name, Integer size) {
         this.row = row;

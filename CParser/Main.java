@@ -19,6 +19,9 @@ class Main {
   public final static boolean SHOW_TREE = true;
   static public void main(String argv[]) {    
     /* Start the parser */
+    boolean showTree = false;
+    boolean showSymbols = false;
+    boolean generateCode = false;
     int showSymbolList = 0;
     String fileName = argv[0].split("/")[1];
     String outFile = "output_files/" + fileName.substring(0, fileName.length() - 3);
@@ -27,8 +30,12 @@ class Main {
     for(String s: argv) {
       if(s.equals("-s")) {
         showSymbolList = 2;
+        showSymbols = true;
       }else if(s.equals("-a") && showSymbolList < 1) {
         showSymbolList = 1;
+        showTree = true;
+      }else if(s.equals("-c")) {
+        generateCode = true;
       }
     }
 
@@ -56,7 +63,15 @@ class Main {
         out = null;
       }  
       SemanticAnalyzer analyzer = new SemanticAnalyzer(result, out);
+
+      if(out != null)
+        out.close();
       
+      if(generateCode) {
+        out = new FileOutputStream(outFile + ".tm");
+        CodeGenerator generator = new CodeGenerator(result, out);
+      }
+
       if(out != null)
         out.close();
 
