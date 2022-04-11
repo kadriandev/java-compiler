@@ -13,7 +13,8 @@ public class CodeGenerator implements AbsynVisitor {
     private static final int gp = 6;    // 
     private static final int pc = 7;    // PC Counter
     
-    private static final int ofpFO = -2;
+    private static final int ofpFO = 0;
+    private static final int retFO = -1;
     private static final int initFO = -2;
 
 
@@ -26,7 +27,7 @@ public class CodeGenerator implements AbsynVisitor {
 
     public CodeGenerator(Absyn result, FileOutputStream out) {
         this.code = out;
-
+        frameOffset = initFO;
         // Generate Prelude
         this.emitComment("generate prelude");
         this.emitRM("LD", gp, 0, ac, "load gp with maxaddr");
@@ -80,6 +81,7 @@ public class CodeGenerator implements AbsynVisitor {
         
         node.offset = offset;
         if(isAddr) {
+            frameOffset -= 1;
             this.emitComment("processing local variable: " + node.name);
             node.nestLevel = 1;
         }else {
@@ -264,6 +266,8 @@ public class CodeGenerator implements AbsynVisitor {
                 args = args.tail;
             }
         }
+
+        frameOffset--;
         
         //NUMBERS ARE A BIT OFF HERE COMPARED TO THE OUTPUT PROVIDED
         this.emitComment ("-> call of function: " + exp.funcName);
