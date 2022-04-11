@@ -61,7 +61,7 @@ public class CodeGenerator implements AbsynVisitor {
 
         // Generate Finale
         this.emitComment("generate finale");
-        this.emitRM("ST", fp, -1, fp, "push ofp");
+        this.emitRM("ST", fp, 0, fp, "push ofp");
         this.emitRM("LDA", fp, globalOffset, fp, "push frame");
         this.emitRM("LDA", ac, 1, pc, "load ac with ret ptr");
         this.emitRM_Abs("LDA", pc, mainEntry, "jump to main loc");
@@ -148,7 +148,6 @@ public class CodeGenerator implements AbsynVisitor {
 
     public void visit(AssignExpression exp, int offset, boolean isAddr) {
         int tmpOffset = --offset;
-        
         
         this.emitComment ("-> op");
         exp.lhs.accept(this, tmpOffset, true);
@@ -257,6 +256,8 @@ public class CodeGenerator implements AbsynVisitor {
 
     public void visit(FuncExpression exp, int offset, boolean isAddr) {
         int tmpOffset = 0;
+        frameOffset--;  // Mover frame offset for bookkeeping
+
         StatementList args = exp.args;
         if (args != null) {
             while (args != null && args.head != null) {
@@ -267,7 +268,7 @@ public class CodeGenerator implements AbsynVisitor {
             }
         }
 
-        frameOffset--;
+        
         
         //NUMBERS ARE A BIT OFF HERE COMPARED TO THE OUTPUT PROVIDED
         this.emitComment ("-> call of function: " + exp.funcName);
@@ -291,7 +292,8 @@ public class CodeGenerator implements AbsynVisitor {
         
         this.emitRM("LD", fp, ofpFO, fp, "  pop frame");
 
-        
+        frameOffset -= tmpOffset - 2;
+
         this.emitComment ("<- call");
             
     }
