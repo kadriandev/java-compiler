@@ -229,26 +229,27 @@ public class CodeGenerator implements AbsynVisitor {
         this.emitComment ("while: jump after body comes back here");
         int savedLocTest = this.emitSkip(0);
         this.emitComment ("-> op");
-        exp.test.accept(this, level, false);
+        exp.test.accept(this, level, false); // must perform an assembly test
+        
         this.emitComment ("<- op");
         int savedLocBody = this.emitSkip(1);
         this.emitComment ("while: jump to end belongs here");
         exp.exps.accept(this, level, false);
-        this.emitRM_Abs("LDA", pc, savedLocTest, "jump back to start of while loop");
+        
+        this.emitRM_Abs("LDA", pc, savedLocTest, "while: absolute jmp to test");
 
         this.emitBackup(savedLocTest);
         if(exp.test instanceof OpExpression) {
             OpExpression test = (OpExpression)(exp.test);
-            if(test.op == OpExpression.EQ)          this.emitRM_Abs("JEQ", ac, savedLocBody, "");    
-            else if(test.op == OpExpression.NEQ)    this.emitRM_Abs("JNE", ac, savedLocBody, "");
-            else if(test.op == OpExpression.GT)     this.emitRM_Abs("JGT", ac, savedLocBody, "");
-            else if(test.op == OpExpression.GTE)    this.emitRM_Abs("JGE", ac, savedLocBody, "");  
-            else if(test.op == OpExpression.LT)     this.emitRM_Abs("JLT", ac, savedLocBody, "");  
-            else if(test.op == OpExpression.LTE)    this.emitRM_Abs("JLE", ac, savedLocBody, "");
+            if(test.op == OpExpression.EQ)          this.emitRM_Abs("JEQ", ac, savedLocBody, "while: jmp to end");    
+            else if(test.op == OpExpression.NEQ)    this.emitRM_Abs("JNE", ac, savedLocBody, "while: ");
+            else if(test.op == OpExpression.GT)     this.emitRM_Abs("JGT", ac, savedLocBody, "while: ");
+            else if(test.op == OpExpression.GTE)    this.emitRM_Abs("JGE", ac, savedLocBody, "while: ");  
+            else if(test.op == OpExpression.LT)     this.emitRM_Abs("JLT", ac, savedLocBody, "while: ");  
+            else if(test.op == OpExpression.LTE)    this.emitRM_Abs("JLE", ac, savedLocBody, "while: ");
         }else{
             this.emitRM_Abs("JGT", ac, savedLocBody, "");
         }
-        
         this.emitRestore();
     }
 
