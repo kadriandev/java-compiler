@@ -143,7 +143,7 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id value");
             this.emitComment ("<- id");
-            this.emitRM("ST", ac, --offset, fp, "op: push left"); 
+            this.emitRM("ST", ac1, offset, fp, "op: push left"); 
         }
     }
 
@@ -173,22 +173,22 @@ public class CodeGenerator implements AbsynVisitor {
         exp.left.accept(this, --tmpOffset, false);
         exp.right.accept(this, --tmpOffset, false);
 
-        this.emitRM("LD", ac, tmpOffset, fp, "");
-        this.emitRM("LD", ac1, --tmpOffset, fp, "");
+        //this.emitRM("LD", ac, tmpOffset, fp, "");
+        //this.emitRM("LD", ac1, --tmpOffset, fp, "");
 
         if(exp.op == OpExpression.PLUS) {
             this.emitRO("ADD", 0, 0, 1, "");
         }else if(exp.op == OpExpression.MINUS){
-            this.emitRO("SUB", 0, 0, 1, "");
+            this.emitRO("SUB", ac, ac1, 0, "op -");
         }else if(exp.op == OpExpression.TIMES){
-            this.emitRO("MUL", 0, 0, 1, "");
+            this.emitRO("MUL", ac, ac1, 0, "op *");
         }else if(exp.op == OpExpression.OVER){
             this.emitRO("DIV", 0, 0, 1, "");
         }else {
             this.emitRO("SUB", 0, 0, 1, "");
         }
         this.emitComment ("<- op");
-        this.emitRM("ST", ac, --offset, fp, "");
+        //this.emitRM("ST", ac, --offset, fp, "");
     }
 
     public void visit(IfStatement exp, int offset, boolean isAddr) {
