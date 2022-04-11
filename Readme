@@ -1,8 +1,0 @@
-This directory contains an input file "newsdata.txt" that can be used to test
-your implementation for the Warmup Assignment.  A sample output file
-"sample.out" is also given for the beginning portion of "newsdata.txt".
-Finally, a sample scanner for a tiny programming language is given so that
-you can follow a similar code structure for your implementation. As stated
-in the assignment description, you are allowed to use/adapt it for your
-implementation; just acknowledge it in the README file of your submission.
-
