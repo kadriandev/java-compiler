@@ -99,7 +99,7 @@ public class CodeGenerator implements AbsynVisitor {
         this.emitComment ("jump around function body here");
 
         if(exp.name.equals("main")) {
-            mainEntry = emitLoc - 1;
+            mainEntry = emitLoc;
         }
 
         this.emitRM("ST", ac, -1, fp, "store return");
@@ -131,18 +131,17 @@ public class CodeGenerator implements AbsynVisitor {
 
     public void visit(VarExpression exp, int offset, boolean isAddr) {
         
-        
         this.emitComment ("-> id");
         if(isAddr) {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LDA", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id address");
             this.emitComment ("<- id");
-            this.emitRM("ST", ac, --offset, fp, "   op: push left");
+            this.emitRM("ST", ac, --offset, fp, "op: push left1");
         }else {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id value");
             this.emitComment ("<- id");
-            this.emitRM("ST", ac, --offset, fp, "op: push left"); 
+            this.emitRM("ST", ac, --offset, fp, "op: push left2"); 
         }
     }
 
@@ -166,27 +165,27 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     public void visit(OpExpression exp, int offset, boolean isAddr) {
-        int tmpOffset = offset;
         
-        exp.left.accept(this, --tmpOffset, false);
-        exp.right.accept(this, --tmpOffset, false);
+        exp.left.accept(this, --offset, false);
+        exp.right.accept(this,--offset, false);
 
-        this.emitRM("LD", ac, tmpOffset, fp, "");
-        this.emitRM("LD", ac1, --tmpOffset, fp, "");
+        this.emitRM("LD", ac1, offset, fp, "load left");
 
         if(exp.op == OpExpression.PLUS) {
-            this.emitRO("ADD", 0, 0, 1, "");
+            this.emitRO("ADD", 0, 1, 0, "");
         }else if(exp.op == OpExpression.MINUS){
-            this.emitRO("SUB", 0, 0, 1, "");
+            this.emitRO("SUB", 0, 1, 0, "");
         }else if(exp.op == OpExpression.TIMES){
-            this.emitRO("MUL", 0, 0, 1, "");
+            this.emitRO("MUL", 0, 1, 0, "");
         }else if(exp.op == OpExpression.OVER){
-            this.emitRO("DIV", 0, 0, 1, "");
+            this.emitRO("DIV", 0, 1, 0, "");
         }else {
-            this.emitRO("SUB", 0, 0, 1, "");
+            this.emitRO("SUB", 0, 1, 0, "");
+            this.emitRM("JGT", ac, 2, pc, "br if true");
+            this.emitRM("LDC", 0, 0, 0, "false case");
+            this.emitRM("LDA", pc, 1, pc, "unconditional jump");
+            this.emitRM("LDC", 0, 1, 0, "true case");
         }
-
-        this.emitRM("ST", ac, --offset, fp, "");
     }
 
     public void visit(IfStatement exp, int offset, boolean isAddr) {
@@ -237,6 +236,7 @@ public class CodeGenerator implements AbsynVisitor {
         exp.exps.accept(this, level, false);
         
         this.emitRM_Abs("LDA", pc, savedLocTest, "while: absolute jmp to test");
+<<<<<<< Updated upstream
 
         this.emitBackup(savedLocTest);
         if(exp.test instanceof OpExpression) {
@@ -251,6 +251,11 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitRM_Abs("JGT", ac, savedLocBody, "");
         }
         
+=======
+        int savedLoc = this.emitSkip(0);
+        this.emitBackup(savedLocBody);
+        this.emitRM_Abs("JEQ", ac, savedLoc, "");
+>>>>>>> Stashed changes
         this.emitRestore();
     }
 
@@ -265,14 +270,12 @@ public class CodeGenerator implements AbsynVisitor {
         StatementList args = exp.args;
         if (args != null) {
             while (args != null && args.head != null) {
-                args.head.accept(this, tmpOffset--, false);
-                this.emitRM("ST", ac, frameOffset + initFO + tmpOffset, fp, "");
+                args.head.accept(this, tmpOffset, false);
+                this.emitRM("ST", ac, frameOffset + initFO + tmpOffset, fp, "load param");
                 tmpOffset--;
                 args = args.tail;
             }
         }
-
-        
         
         //NUMBERS ARE A BIT OFF HERE COMPARED TO THE OUTPUT PROVIDED
         this.emitComment ("-> call of function: " + exp.funcName);
