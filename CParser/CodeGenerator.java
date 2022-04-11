@@ -142,7 +142,7 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id value");
             this.emitComment ("<- id");
-            this.emitRM("ST", ac, --offset, fp, ""); 
+            this.emitRM("ST", ac, --offset, fp, "op: push left"); 
         }
     }
 
@@ -229,8 +229,11 @@ public class CodeGenerator implements AbsynVisitor {
         
         this.emitComment ("while: jump after body comes back here");
         int savedLocTest = this.emitSkip(0);
+        this.emitComment ("-> op");
         exp.test.accept(this, level, false);
+        this.emitComment ("<- op");
         int savedLocBody = this.emitSkip(1);
+        this.emitComment ("while: jump to end belongs here");
         exp.exps.accept(this, level, false);
         this.emitRM_Abs("LDA", pc, savedLocTest, "jump back to start of while loop");
 
@@ -247,7 +250,6 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitRM_Abs("JGT", ac, savedLocBody, "");
         }
         
-        this.emitComment ("<- while");
         this.emitRestore();
     }
 
@@ -290,8 +292,6 @@ public class CodeGenerator implements AbsynVisitor {
         }
         
         this.emitRM("LD", fp, ofpFO, fp, "  pop frame");
-
-        
         this.emitComment ("<- call");
             
     }
