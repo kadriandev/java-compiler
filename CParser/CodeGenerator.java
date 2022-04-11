@@ -13,10 +13,15 @@ public class CodeGenerator implements AbsynVisitor {
     private static final int gp = 6;    // 
     private static final int pc = 7;    // PC Counter
     
+    private static final int ofpFO = -2;
+    private static final int initFO = -2;
+
+
+
     static int emitLoc = 0;
     static int highEmitLoc = 0;
 
-    private int mainEntry = 0, globalOffset = 0;
+    private int mainEntry = 0, globalOffset = 0, frameOffset = 0;
     private FileOutputStream code;
 
     public CodeGenerator(Absyn result, FileOutputStream out) {
@@ -33,11 +38,11 @@ public class CodeGenerator implements AbsynVisitor {
         // Generate I/O routines
         this.emitComment("generate i/o routines");
         this.emitComment("code for input routine");
-        this.emitRM("ST", ac, -1, fp, "store return");
+        this.emitRM("ST", ac, -1, fp, "store return"); // 
         this.emitRO("IN", 0, 0, 0, "input");
         this.emitRM("LD", pc, -1, 5, "return to caller");
 
-        this.emitComment("code foe output routine");
+        this.emitComment("code for output routine");
         this.emitRM("ST", ac, -1, fp, "store return");
         this.emitRM("LD", ac, -2, fp, "load output value");
         this.emitRO("OUT", 0, 0, 0, "output");
@@ -62,28 +67,35 @@ public class CodeGenerator implements AbsynVisitor {
         this.emitRO("HALT", 0, 0, 0, "halt program");
     }
 
-    public void visit(DeclarationList expList, int level, boolean isAddr) {
+    public void visit(DeclarationList expList, int offset, boolean isAddr) {
         
         while (expList != null && expList.head != null) {
-            expList.head.accept(this, level, false);
+            expList.head.accept(this, offset--, isAddr);
             expList = expList.tail;
         }
     }
 
     public void visit(VarDeclaration node, int offset, boolean isAddr) {
+        
         node.offset = offset;
         if(isAddr) {
+            this.emitComment("processing local variable: " + node.name);
             node.nestLevel = 1;
         }else {
+            this.emitComment("processing global variable: " + node.name);
             node.nestLevel = 0;
         }
     }
 
     public void visit(FuncDeclaration exp, int offset, boolean isAddr) {
+        this.emitComment("processing function: " + exp.name);
+
         int savedLoc = emitSkip(1);
 
+        this.emitRM("ST", ac, -1, fp, "store return");
+
         if(exp.name.equals("main")) {
-            mainEntry = emitLoc;
+            mainEntry = emitLoc - 1;
         }
 
         int ofs = -2;
@@ -93,7 +105,9 @@ public class CodeGenerator implements AbsynVisitor {
             dl = dl.tail;
         }
         
-        exp.funcBody.accept(this, offset, false);
+        exp.funcBody.accept(this, ofs, false);
+
+        this.emitRM("LD", pc, -1, fp, "return back to caller");
         
         int savedLoc2 = emitSkip(0);
         emitBackup(savedLoc);
@@ -101,62 +115,157 @@ public class CodeGenerator implements AbsynVisitor {
         emitRestore();
     }
 
-    public void visit(StatementList expList, int level, boolean isAddr) {
+    public void visit(StatementList expList, int offset, boolean isAddr) {
         while (expList != null && expList.head != null) {
-            expList.head.accept(this, level, false);
+            expList.head.accept(this, offset, false);
             expList = expList.tail;
         }
     }
 
-    public void visit(VarExpression exp, int level, boolean isAddr) {
-        if (exp.index != null) {
-            exp.index.accept(this, ++level, false);
+    public void visit(VarExpression exp, int offset, boolean isAddr) {
+        
+        if(isAddr) {
+            this.emitRM("LDA", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "");
+            this.emitRM("ST", ac, --offset, fp, "");
+        }else {
+            this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "");
+            this.emitRM("ST", ac, --offset, fp, "");
         }
     }
 
-    public void visit(AssignExpression exp, int level, boolean isAddr) {
-        exp.lhs.accept(this, level, true);
-        exp.rhs.accept(this, level, false);
+    public void visit(AssignExpression exp, int offset, boolean isAddr) {
+        int tmpOffset = --offset;
+        exp.lhs.accept(this, tmpOffset, true);
+        exp.rhs.accept(this, --tmpOffset, false);
+
+        this.emitRM("LD", ac, offset - 1, fp, "");
+        this.emitRM("LD", ac1, offset - 2, fp, "");
+        this.emitRM("ST", ac1, 0, ac, "");
+        this.emitRM("ST", ac1, offset, fp, "");
     }
 
-    public void visit(IfStatement exp, int level, boolean isAddr) {
-        exp.test.accept(this, level, false);
-        exp.ifblock.accept(this, ++level, false);
+    public void visit(OpExpression exp, int offset, boolean isAddr) {
+        int tmpOffset = offset;
+        exp.left.accept(this, --tmpOffset, false);
+        exp.right.accept(this, --tmpOffset, false);
+        this.emitRM("LD", ac, tmpOffset, fp, "");
+        this.emitRM("LD", ac1, --tmpOffset, fp, "");
+
+        if(exp.op == OpExpression.PLUS) {
+            this.emitRO("ADD", 0, 0, 1, "");
+        }else if(exp.op == OpExpression.MINUS){
+            this.emitRO("SUB", 0, 0, 1, "");
+        }else if(exp.op == OpExpression.TIMES){
+            this.emitRO("MUL", 0, 0, 1, "");
+        }else if(exp.op == OpExpression.OVER){
+            this.emitRO("DIV", 0, 0, 1, "");
+        }else {
+            this.emitRO("SUB", 0, 0, 1, "");
+        }
+
+        this.emitRM("ST", ac, --offset, fp, "");
+    }
+
+    public void visit(IfStatement exp, int offset, boolean isAddr) {
+        // Evaluate test and store in ac
+        exp.test.accept(this, offset, false);
+
+        int savedLoc1 = this.emitSkip(1);
+        exp.ifblock.accept(this, offset, false);
+
+        int savedLoc2 = this.emitSkip(1);
+        this.emitSkip(0);
+        this.emitBackup(savedLoc1);
+        if(exp.test instanceof OpExpression) {
+            OpExpression test = (OpExpression)(exp.test);
+            if(test.op == OpExpression.EQ)          this.emitRM_Abs("JEQ", ac, savedLoc1, "");    
+            else if(test.op == OpExpression.NEQ)    this.emitRM_Abs("JNE", ac, savedLoc1, "");
+            else if(test.op == OpExpression.GT)     this.emitRM_Abs("JGT", ac, savedLoc1, "");
+            else if(test.op == OpExpression.GTE)    this.emitRM_Abs("JGE", ac, savedLoc1, "");  
+            else if(test.op == OpExpression.LT)     this.emitRM_Abs("JLT", ac, savedLoc1, "");  
+            else if(test.op == OpExpression.LTE)    this.emitRM_Abs("JLE", ac, savedLoc1, "");
+        }else{
+            this.emitRM_Abs("JGT", ac, savedLoc1, "");
+        }
+        this.emitRestore();
+
         if (exp.elseblock != null) {
-            exp.elseblock.accept(this, ++level, false);
+            exp.elseblock.accept(this, offset, false);
         }
-    }
 
-    public void visit(OpExpression exp, int level, boolean isAddr) {
-        exp.left.accept(this, level, false);
-        exp.right.accept(this, level, false);
+        int savedLoc2b = this.emitSkip(0);
+        this.emitBackup(savedLoc2);
+        this.emitRM_Abs("LDA", pc, savedLoc2b, "");
+        this.emitRestore();
     }
 
     public void visit(WhileStatement exp, int level, boolean isAddr) {
+        int savedLocTest = this.emitSkip(0);
         exp.test.accept(this, level, false);
-        exp.exps.accept(this, ++level, false);
+        int savedLocBody = this.emitSkip(1);
+        exp.exps.accept(this, level, false);
+        this.emitRM_Abs("LDA", pc, savedLocTest, "jump back to start of while loop");
+
+        this.emitBackup(savedLocTest);
+        if(exp.test instanceof OpExpression) {
+            OpExpression test = (OpExpression)(exp.test);
+            if(test.op == OpExpression.EQ)          this.emitRM_Abs("JEQ", ac, savedLocBody, "");    
+            else if(test.op == OpExpression.NEQ)    this.emitRM_Abs("JNE", ac, savedLocBody, "");
+            else if(test.op == OpExpression.GT)     this.emitRM_Abs("JGT", ac, savedLocBody, "");
+            else if(test.op == OpExpression.GTE)    this.emitRM_Abs("JGE", ac, savedLocBody, "");  
+            else if(test.op == OpExpression.LT)     this.emitRM_Abs("JLT", ac, savedLocBody, "");  
+            else if(test.op == OpExpression.LTE)    this.emitRM_Abs("JLE", ac, savedLocBody, "");
+        }else{
+            this.emitRM_Abs("JGT", ac, savedLocBody, "");
+        }
+        this.emitRestore();
     }
 
     public void visit(ReturnStatement exp, int level, boolean isAddr) {
         exp.exp.accept(this, ++level, false);
     }
 
-    public void visit(FuncExpression exp, int level, boolean isAddr) {
-        if (exp.args != null)
-            exp.args.accept(this, ++level, false);
+    public void visit(FuncExpression exp, int offset, boolean isAddr) {
+        int tmpOffset = 0;
+        StatementList args = exp.args;
+        if (args != null) {
+            while (args != null && args.head != null) {
+                args.head.accept(this, tmpOffset--, false);
+                this.emitRM("ST", ac, frameOffset + initFO + tmpOffset, fp, "");
+                tmpOffset--;
+                args = args.tail;
+            }
+        }
+        this.emitRM("ST", fp, frameOffset + ofpFO, fp, "");
+        this.emitRM("LDA", fp, frameOffset, fp, "");
+        this.emitRM("LDA", ac, 1, pc, "");
+
+        if(exp.funcName.equals("output")) {
+            this.emitRM_Abs("LDA", pc, 7, "jump to fn body");
+        }else if(exp.funcName.equals("input")) {
+            this.emitRM_Abs("LDA", pc, 4, "jump to fn body");
+        }else {
+            this.emitRM_Abs("LDA", pc, ((FuncDeclaration)(exp.dtype)).funaddr, "jump to fn body");
+        }
+        
+        this.emitRM("LD", fp, ofpFO, fp, "");
+            
     }
 
-    public void visit(CompoundStatement node, int level, boolean isAddr) {
+    public void visit(CompoundStatement node, int offset, boolean isAddr) {
         if (node.local_decl != null) {
-            node.local_decl.accept(this, level, false);
+            node.local_decl.accept(this, offset, true);
         }
 
         if (node.statements != null) {
-            node.statements.accept(this, level, false);
+            node.statements.accept(this, offset, false);
         }
     }
 
-    public void visit(IntExpression exp, int level, boolean isAddr) { }
+    public void visit(IntExpression exp, int offset, boolean isAddr) { 
+        this.emitRM("LDC", ac, Integer.parseInt(exp.value), ac, "");
+        this.emitRM("ST", ac, --offset, fp, "");
+    }
 
     // EMIT FUNCTIONS
 
@@ -189,7 +298,7 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     private void emitRM_Abs(String op, int r, int a, String c) {
-        String str = emitLoc + ":" + op + " " + r + ", " + (a - (emitLoc + 1)) + "(" + pc + ")";
+        String str = emitLoc + ":     " + op + " " + r + ", " + (a - (emitLoc + 1)) + "(" + pc + ")";
         str += "\t" + c;
         this.printLine(str);
         ++emitLoc;
@@ -198,7 +307,7 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     private void emitRO(String op, int r, int s, int t, String c) {
-        String str = emitLoc + ":" + op + " " + r + ", " + s + ", " + t;
+        String str = emitLoc + ":     " + op + " " + r + ", " + s + ", " + t;
         str += "\t" + c;
         this.printLine(str);
         ++emitLoc;
@@ -207,7 +316,7 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     private void emitRM(String op, int r, int d, int s, String c) {
-        String str = emitLoc + ":" + op + " " + r + ", " + d + "(" + s + ")";
+        String str = emitLoc + ":     " + op + " " + r + ", " + d + "(" + s + ")";
         str += "\t" + c;
         this.printLine(str);
         ++emitLoc;

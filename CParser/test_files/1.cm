@@ -1,5 +1,6 @@
 
-
 void main(void) {
-  output(3);
+  int x;
+  x = 4;
+  output(x);
 }
