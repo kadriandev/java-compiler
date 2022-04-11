@@ -29,7 +29,7 @@ public class CodeGenerator implements AbsynVisitor {
         this.code = out;
         frameOffset = initFO;
         // Generate Prelude
-        this.emitComment("generate prelude");
+        this.emitComment("Standard prelude");
         this.emitRM("LD", gp, 0, ac, "load gp with maxaddr");
         this.emitRM("LDA", fp, 0, gp, "copy gp to fp");
         this.emitRM("ST", ac, 0, ac, "clear content at loc 0");
@@ -37,7 +37,7 @@ public class CodeGenerator implements AbsynVisitor {
         int savedLoc = this.emitSkip(1);
 
         // Generate I/O routines
-        this.emitComment("generate i/o routines");
+        this.emitComment("Jump around i/o routines here");
         this.emitComment("code for input routine");
         this.emitRM("ST", ac, -1, fp, "store return"); // 
         this.emitRO("IN", 0, 0, 0, "input");
@@ -52,20 +52,20 @@ public class CodeGenerator implements AbsynVisitor {
         int savedLoc2 = this.emitSkip(0);
         this.emitBackup(savedLoc);
         this.emitRM_Abs("LDA", pc, savedLoc2, "jump around i/o code");
-        this.emitComment("end prelude");
+        this.emitComment("End of standard prelude");
         this.emitRestore();
 
         // Generate Code From Syntax Tree
-        this.emitComment("generate code");
         result.accept(this, 0, false);
 
         // Generate Finale
         this.emitComment("generate finale");
-        this.emitRM("ST", fp, 0, fp, "push ofp");
+        this.emitRM("ST", fp, -1, fp, "push ofp");
         this.emitRM("LDA", fp, globalOffset, fp, "push frame");
         this.emitRM("LDA", ac, 1, pc, "load ac with ret ptr");
         this.emitRM_Abs("LDA", pc, mainEntry, "jump to main loc");
         this.emitRM("LD", fp, 0, fp, "pop frame");
+        this.emitComment("End of execution.");
         this.emitRO("HALT", 0, 0, 0, "halt program");
     }
 
@@ -119,6 +119,7 @@ public class CodeGenerator implements AbsynVisitor {
         int savedLoc2 = emitSkip(0);
         emitBackup(savedLoc);
         emitRM_Abs("LDA", pc, savedLoc2, "jump around fn body");
+        this.emitComment ("<- fundecl");
         emitRestore();
     }
 
@@ -149,6 +150,7 @@ public class CodeGenerator implements AbsynVisitor {
     public void visit(AssignExpression exp, int offset, boolean isAddr) {
         int tmpOffset = --offset;
         
+        
         this.emitComment ("-> op");
         exp.lhs.accept(this, tmpOffset, true);
         exp.rhs.accept(this, --tmpOffset, false);
@@ -167,7 +169,7 @@ public class CodeGenerator implements AbsynVisitor {
 
     public void visit(OpExpression exp, int offset, boolean isAddr) {
         int tmpOffset = offset;
-        
+        this.emitComment ("-> op");
         exp.left.accept(this, --tmpOffset, false);
         exp.right.accept(this, --tmpOffset, false);
 
@@ -185,7 +187,7 @@ public class CodeGenerator implements AbsynVisitor {
         }else {
             this.emitRO("SUB", 0, 0, 1, "");
         }
-
+        this.emitComment ("<- op");
         this.emitRM("ST", ac, --offset, fp, "");
     }
 
@@ -250,6 +252,8 @@ public class CodeGenerator implements AbsynVisitor {
         }else{
             this.emitRM_Abs("JGT", ac, savedLocBody, "");
         }
+        
+        this.emitComment ("<- while");
         this.emitRestore();
     }
 
@@ -258,9 +262,8 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     public void visit(FuncExpression exp, int offset, boolean isAddr) {
+        this.emitComment ("-> call of function: " + exp.funcName);
         int tmpOffset = 0;
-        frameOffset--;  // Mover frame offset for bookkeeping
-
         StatementList args = exp.args;
         if (args != null) {
             while (args != null && args.head != null) {
@@ -271,10 +274,9 @@ public class CodeGenerator implements AbsynVisitor {
             }
         }
 
-        
+        frameOffset--;
         
         //NUMBERS ARE A BIT OFF HERE COMPARED TO THE OUTPUT PROVIDED
-        this.emitComment ("-> call of function: " + exp.funcName);
         this.emitRM("ST", fp, frameOffset + ofpFO, fp, "    push ofp");
         this.emitRM("LDA", fp, frameOffset, fp, "   push frame");
         this.emitRM("LDA", ac, 1, pc, "     load ac with ret ptr");
@@ -294,9 +296,6 @@ public class CodeGenerator implements AbsynVisitor {
         }
         
         this.emitRM("LD", fp, ofpFO, fp, "  pop frame");
-
-        frameOffset -= tmpOffset - 2;
-
         this.emitComment ("<- call");
             
     }
@@ -312,6 +311,8 @@ public class CodeGenerator implements AbsynVisitor {
         if (node.statements != null) {
             node.statements.accept(this, offset, false);
         }
+
+        this.emitComment ("<- compound statement");
     }
 
     public void visit(IntExpression exp, int offset, boolean isAddr) { 
