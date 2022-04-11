@@ -187,8 +187,7 @@ public class CodeGenerator implements AbsynVisitor {
         }else if(exp.op == OpExpression.OVER){
             this.emitRO("DIV", ac, ac1, 0, " op /");
         }else {
-            this.emitRO("SUB", 0, 0, 1, "");
-            this.emitRO("SUB", 0, 1, 0, "");
+            this.emitRO("SUB", ac, ac1, 0, "op ==");
             this.emitRM("JGT", ac, 2, pc, "br if true");
             this.emitRM("LDC", 0, 0, 0, "false case");
             this.emitRM("LDA", pc, 1, pc, "unconditional jump");
@@ -259,7 +258,7 @@ public class CodeGenerator implements AbsynVisitor {
         int loc = this.emitSkip(0);
         this.emitBackup(savedLocTest);
 
-        this.emitRM_Abs("JEQ", ac, loc, "");
+        this.emitRM_Abs("JEQ", ac, loc, "while: jmp to end");
         this.emitRestore();
     }
 
