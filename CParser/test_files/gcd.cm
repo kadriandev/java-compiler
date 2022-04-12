@@ -1,7 +1,7 @@
 /* A program to perform Euclid's 
    algorithm to compute a gcd */
 
-int z[2];
+int y;
 
 int gcd(int u, int v) {
   if (v == 0) return u;
@@ -9,8 +9,8 @@ int gcd(int u, int v) {
 }
 
 void main(void) {
-  int x; int y;
+  int x;
   x = input();
-  y = input();
+  y = 10;
   output(gcd(x, y));
 }
