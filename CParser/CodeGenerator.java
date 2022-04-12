@@ -66,6 +66,7 @@ public class CodeGenerator implements AbsynVisitor {
         this.emitRM("LDA", ac, 1, pc, "load ac with ret ptr");
         this.emitRM_Abs("LDA", pc, mainEntry, "jump to main loc");
         this.emitRM("LD", fp, 0, fp, "pop frame");
+        this.emitComment ("End of execution.");
         this.emitRO("HALT", 0, 0, 0, "halt program");
     }
 
@@ -86,8 +87,8 @@ public class CodeGenerator implements AbsynVisitor {
         }else {
             this.emitComment("processing global variable: " + node.name);
             node.nestLevel = 0;
+            this.emitComment ("<- vardecl"); 
         }
-        
     }
 
     public void visit(FuncDeclaration exp, int offset, boolean isAddr) {
@@ -118,6 +119,7 @@ public class CodeGenerator implements AbsynVisitor {
         int savedLoc2 = emitSkip(0);
         emitBackup(savedLoc);
         emitRM_Abs("LDA", pc, savedLoc2, "jump around fn body");
+        this.emitComment ("<- fundecl");
         emitRestore();
     }
 
@@ -136,7 +138,7 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LDA", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id address");
             this.emitComment ("<- id");
-            this.emitRM("ST", ac, --offset, fp, "   op: push left1");
+            this.emitRM("ST", ac, --offset, fp, "   op: push left");
         }else {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id value");
@@ -150,11 +152,13 @@ public class CodeGenerator implements AbsynVisitor {
         
         this.emitComment ("-> op");
         exp.lhs.accept(this, tmpOffset, true);
+        this.emitComment ("-> op");
         exp.rhs.accept(this, --tmpOffset, false);
+        this.emitComment ("<- op");
+
 
         this.emitRM("LD", ac1, offset - 1, fp, "op: load left");
         this.emitRM("ST", ac, 0, ac1, "assign: store value");
-        
         this.emitComment ("<- op");
 
         /*this.emitRM("LD", ac, offset - 1, fp, "");
@@ -166,6 +170,7 @@ public class CodeGenerator implements AbsynVisitor {
 
     public void visit(OpExpression exp, int offset, boolean isAddr) {
         int tmpOffset = offset;
+        this.emitComment ("-> op");
         this.emitComment(Integer.toString(frameOffset));
         exp.left.accept(this, tmpOffset, false);
         this.emitRM("ST", ac, --tmpOffset, fp, "op: push left");
@@ -173,32 +178,43 @@ public class CodeGenerator implements AbsynVisitor {
 
         tmpOffset++;
 
-        this.emitRM("LD", ac1, tmpOffset, fp, "");
+        this.emitRM("LD", ac1, tmpOffset, fp, "op: load left");
 
         if(exp.op == OpExpression.PLUS) {
-            this.emitRO("ADD", 0, 1, 0, "");
+            this.emitRO("ADD", 0, 1, 0, "op +");
         }else if(exp.op == OpExpression.MINUS){
-            this.emitRO("SUB", 0, 1, 0, "");
+            this.emitRO("SUB", 0, 1, 0, "op -");
         }else if(exp.op == OpExpression.TIMES){
-            this.emitRO("MUL", 0, 1, 0, "");
+            this.emitRO("MUL", 0, 1, 0, "op *");
         }else if(exp.op == OpExpression.OVER){
-            this.emitRO("DIV", 0, 1, 0, "");
+            this.emitRO("DIV", 0, 1, 0, "op /");
+        }else if(exp.op == OpExpression.EQ){
+            this.emitRO("SUB", 0, 1, 0, "op ==");
+            this.emitRM("JGT", ac, 2, pc, "br if true");
+            this.emitRM("LDC", 0, 0, 0, "false case");
+            this.emitRM("LDA", pc, 1, pc, "unconditional jump");
+            this.emitRM("LDC", 0, 1, 0, "true case");
         }else {
-            this.emitRO("SUB", 0, 1, 0, "");
+            this.emitRO("SUB", 0, 1, 0, "op >");
             this.emitRM("JGT", ac, 2, pc, "br if true");
             this.emitRM("LDC", 0, 0, 0, "false case");
             this.emitRM("LDA", pc, 1, pc, "unconditional jump");
             this.emitRM("LDC", 0, 1, 0, "true case");
         }
+        
+        this.emitComment ("<- op");
     }
 
     public void visit(IfStatement exp, int offset, boolean isAddr) {
         // Evaluate test and store in ac
+        
+        this.emitComment ("-> if");
         exp.test.accept(this, offset, false);
-
+        
+        this.emitComment ("if: jump to else belongs here");
         int savedLoc1 = this.emitSkip(1);
         exp.ifblock.accept(this, offset, false);
-
+        this.emitComment ("if: jump to end belongs here");
         int savedLoc2 = this.emitSkip(1);
         this.emitSkip(0);
         this.emitBackup(savedLoc1);
@@ -222,6 +238,7 @@ public class CodeGenerator implements AbsynVisitor {
         int savedLoc2b = this.emitSkip(0);
         this.emitBackup(savedLoc2);
         this.emitRM_Abs("LDA", pc, savedLoc2b, "");
+        this.emitComment ("<- if");
         this.emitRestore();
     }
 
@@ -244,14 +261,18 @@ public class CodeGenerator implements AbsynVisitor {
         int loc = this.emitSkip(0);
         this.emitBackup(savedLocBody);
         this.emitRM_Abs("JEQ", ac, loc, "");
+        this.emitComment ("<- while");
         this.emitRestore();
     }
 
     public void visit(ReturnStatement exp, int level, boolean isAddr) {
+        this.emitComment ("-> return");
         exp.exp.accept(this, ++level, false);
+        this.emitComment ("<- return");
     }
 
     public void visit(FuncExpression exp, int offset, boolean isAddr) {
+        this.emitComment ("-> call of function: " + exp.funcName);
         int tmpOffset = 0;
         frameOffset--;  // Move frame offset for bookkeeping
 
@@ -265,7 +286,7 @@ public class CodeGenerator implements AbsynVisitor {
         }
         
         
-        this.emitComment ("-> call of function: " + exp.funcName);
+        
         this.emitRM("ST", fp, frameOffset + ofpFO, fp, "    push ofp");
         this.emitRM("LDA", fp, frameOffset, fp, "   push frame");
         this.emitRM("LDA", ac, 1, pc, "     load ac with ret ptr");
@@ -303,6 +324,7 @@ public class CodeGenerator implements AbsynVisitor {
         if (node.statements != null) {
             node.statements.accept(this, offset, false);
         }
+        this.emitComment ("-> compound statement");
     }
 
     public void visit(IntExpression exp, int offset, boolean isAddr) { 
