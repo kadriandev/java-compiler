@@ -82,8 +82,8 @@ public class CodeGenerator implements AbsynVisitor {
         node.offset = offset;
         if(isAddr) {
             frameOffset -= 1;
-            this.emitComment("processing local variable: " + node.name);
             node.nestLevel = 1;
+            this.emitComment("processing local variable: " + node.name);
         }else {
             this.emitComment("processing global variable: " + node.name);
             node.nestLevel = 0;
@@ -92,9 +92,9 @@ public class CodeGenerator implements AbsynVisitor {
     }
 
     public void visit(FuncDeclaration exp, int offset, boolean isAddr) {
-        this.emitComment("processing function: " + exp.name);
 
         int savedLoc = emitSkip(1);
+        this.emitComment("processing function: " + exp.name);
 
         this.emitComment ("jump around function body here");
 
@@ -110,6 +110,7 @@ public class CodeGenerator implements AbsynVisitor {
             dl.head.accept(this, ofs--, true);
             dl = dl.tail;
         }
+        
         
 
         exp.funcBody.accept(this, ofs, false); // func body is a compound statement
@@ -143,7 +144,10 @@ public class CodeGenerator implements AbsynVisitor {
             this.emitComment ("looking up id: " + exp.name);
             this.emitRM("LD", ac, ((VarDeclaration)(exp.dtype)).offset, fp, "load id value");
             this.emitComment ("<- id");
-            // this.emitRM("ST", ac, --offset, fp, "op: push left2"); 
+        }
+
+        if(exp.index != null){
+            this.emitComment("-> subs");
         }
     }
 
@@ -152,10 +156,13 @@ public class CodeGenerator implements AbsynVisitor {
         
         this.emitComment ("-> op");
         exp.lhs.accept(this, tmpOffset, true);
-        this.emitComment ("-> op");
-        exp.rhs.accept(this, --tmpOffset, false);
-        this.emitComment ("<- op");
-
+        if(exp.rhs instanceof OpExpression){
+            this.emitComment ("-> op");
+            exp.rhs.accept(this, --tmpOffset, false);
+            this.emitComment ("<- op");
+        }else{
+            exp.rhs.accept(this, --tmpOffset, false);
+        }
 
         this.emitRM("LD", ac1, offset - 1, fp, "op: load left");
         this.emitRM("ST", ac, 0, ac1, "assign: store value");
@@ -171,7 +178,6 @@ public class CodeGenerator implements AbsynVisitor {
     public void visit(OpExpression exp, int offset, boolean isAddr) {
         int tmpOffset = offset;
         this.emitComment ("-> op");
-        this.emitComment(Integer.toString(frameOffset));
         exp.left.accept(this, tmpOffset, false);
         this.emitRM("ST", ac, --tmpOffset, fp, "op: push left");
         exp.right.accept(this, --tmpOffset, false);
@@ -268,6 +274,7 @@ public class CodeGenerator implements AbsynVisitor {
     public void visit(ReturnStatement exp, int level, boolean isAddr) {
         this.emitComment ("-> return");
         exp.exp.accept(this, ++level, false);
+        this.emitRM("LD", ac, frameOffset, fp, "return to caller"); 
         this.emitComment ("<- return");
     }
 
@@ -280,7 +287,7 @@ public class CodeGenerator implements AbsynVisitor {
         if (args != null) {
             while (args != null && args.head != null) {
                 args.head.accept(this, tmpOffset--, false);
-                this.emitRM("ST", ac, frameOffset + tmpOffset - 1, fp, "");
+                this.emitRM("ST", ac, frameOffset + tmpOffset - 1, fp, "store arg val");
                 args = args.tail;
             }
         }
@@ -324,7 +331,7 @@ public class CodeGenerator implements AbsynVisitor {
         if (node.statements != null) {
             node.statements.accept(this, offset, false);
         }
-        this.emitComment ("-> compound statement");
+        this.emitComment ("<- compound statement");
     }
 
     public void visit(IntExpression exp, int offset, boolean isAddr) { 
