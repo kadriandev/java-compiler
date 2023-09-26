@@ -1,0 +1,33 @@
+/*
+*   Cannot assign type __ to type __   
+*   If statment test must be int or int comparison
+*/
+
+
+int x;
+
+int gcd(int u, int v) {
+  if (v == 0) return u;
+  else return gcd(v, u - u/v*v);
+}
+
+void voidFunc(void) {
+
+}
+
+void test(int i, int y) {
+  int j;
+  int k[5];
+  j = k;
+
+  if(voidFunc()) {
+
+  }
+}
+
+void main(void) {
+  int x; int y;
+  x = input();
+  y = input();
+  output(gcd(x, y));
+}

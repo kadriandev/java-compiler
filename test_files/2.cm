@@ -1,0 +1,25 @@
+/*
+*   Variable is not subscriptable
+*   Array index must be of type int
+*/
+
+
+int x;
+
+void test(void) {
+  output(0);
+}
+
+int gcd(int u, int v) {
+  if (v == 0) return u;
+  else return gcd(v, u - u/v*v);
+}
+
+void main(void) {
+  int x; int y;
+  y = x[2];
+  y = x[test()];
+  x = input();
+  y = input();
+  output(gcd(x, y));
+}

@@ -1,0 +1,17 @@
+/*
+*   Cannot evaluate expression
+*   While statement test must be an int or int comparison
+*/
+
+
+void test(void) {
+    int x;
+    x = 3 + output(3);
+}
+
+void main(void) {
+  int x; int y;
+  while(test()) {
+    output(3);
+  }
+}
